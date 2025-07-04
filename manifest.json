@@ -24,7 +24,7 @@
     "description": "QuickLinker is a browser extension that allows you to quickly create and manage links to your favorite websites.",
     "content_scripts": [
       {
-        "matches": ["*://*.javdb.com/*"],
+        "matches": ["*://*/*"],
         "css": ["content.css"],
         "js": ["content.js"]
       }

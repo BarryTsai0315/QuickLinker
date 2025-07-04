@@ -19,32 +19,50 @@
   </style>
 </head>
 <body>
-  <h1>管理設定</h1>
+  <h1>QuickLinker 設定</h1>
+
   <div class="tabs">
-    <div id="savedTab" class="active">已儲存的</div>
-    <div id="addTab">新增的</div>
+    <div id="savedTab" class="tab-button active">網站管理</div>
+    <div id="settingsTab" class="tab-button">掃描設定</div>
+    <div id="addTab" class="tab-button">新增網站</div>
   </div>
-  <div id="savedSites" class="tab active">
-    <table>
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Name</th>
-          <th>URL</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="sitesContainer"></tbody>
-    </table>
-    <button id="exportSettings"><i class="fi fi-rr-inbox-out"></i></button>
+
+  <div id="savedSites" class="tab-content active">
+    <div id="sitesContainer" class="sortable-list">
+      <!-- Sites will be rendered here by popup.js -->
+    </div>
+    <button id="exportSettings" title="匯出設定"><i class="fi fi-rr-inbox-out"></i> 匯出</button>
     <input type="file" id="importSettings" style="display: none;">
-    <button id="importButton"><i class="fi fi-rr-inbox-in"></i></button>
+    <button id="importButton" title="匯入設定"><i class="fi fi-rr-inbox-in"></i> 匯入</button>
   </div>
-  <div id="addSiteForm" class="tab">
-    <label>網站名稱: <input type="text" id="newSiteName"></label><br>
-    <label>URL: <input type="text" id="newSiteUrl"></label><br>
-    <button id="addSite"><i class="fi fi-rr-disk"></i></button>
+
+  <div id="settingsContent" class="tab-content">
+    <h2>掃描模式</h2>
+    <div class="setting-item">
+      <label>
+        <input type="radio" name="scanMode" value="bestMatch" id="bestMatchMode"> 最佳結果模式 (找到第一個可用連結後停止)
+      </label>
+    </div>
+    <div class="setting-item">
+      <label>
+        <input type="radio" name="scanMode" value="fullScan" id="fullScanMode"> 完整掃描模式 (掃描所有可用連結)
+      </label>
+    </div>
   </div>
+
+  <div id="addSiteForm" class="tab-content">
+    <h2>新增網站</h2>
+    <div class="form-group">
+      <label for="newSiteName">網站名稱:</label>
+      <input type="text" id="newSiteName" placeholder="例如: JavDB">
+    </div>
+    <div class="form-group">
+      <label for="newSiteBaseUrl">基礎 URL (使用 {} 作為番號佔位符):</label>
+      <input type="text" id="newSiteBaseUrl" placeholder="例如: https://javdb.com/v/{}">
+    </div>
+    <button id="addSiteButton" class="action-button"><i class="fi fi-rr-disk"></i> 儲存網站</button>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

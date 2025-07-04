@@ -1,286 +1,267 @@
-function checkForCode() {
-  const clipboardElement = document.querySelector('.copy-to-clipboard');
-  return clipboardElement?.getAttribute('data-clipboard-text');
+// =============================================
+// DOM & Observers
+// =============================================
+
+function getCode() {
+    const clipboardElement = document.querySelector('.copy-to-clipboard');
+    if (clipboardElement) {
+        return clipboardElement.getAttribute('data-clipboard-text');
+    }
+
+    // Attempt to detect code from URL or title for specific sites like JavDB
+    if (window.location.hostname.includes('javdb.com')) {
+        const urlMatch = window.location.pathname.match(/\/v\/([a-zA-Z0-9-]+)/);
+        if (urlMatch && urlMatch[1]) {
+            return urlMatch[1];
+        }
+        const titleMatch = document.title.match(/([a-zA-Z0-9-]+)/);
+        if (titleMatch && titleMatch[1]) {
+            return titleMatch[1];
+        }
+    }
+    return null;
 }
 
-function createFloatingButton() {
-  console.log('開始創建懸浮按鈕'); // 除錯用
-
-  // 檢查是否已存在按鈕
-  const existingContainer = document.querySelector('.floating-container');
-  if (existingContainer) {
-    existingContainer.remove(); // 移除現有按鈕，重新創建
-  }
-
-  // 檢查是否有番號
-  const code = checkForCode();
-  if (!code) {
-    console.log('沒有找到番號，不創建按鈕');
-    return;
-  }
-  console.log('找到番號:', code); // 除錯用
-
-  // 創建容器
-  const container = document.createElement('div');
-  container.className = 'floating-container';
-
-  // 創建子按鈕容器
-  const subButtonsContainer = document.createElement('div');
-  subButtonsContainer.className = 'sub-buttons';
-
-  // 創建主按鈕
-  const mainButton = document.createElement('div');
-  mainButton.className = 'floating-button main-button';
-  mainButton.innerHTML = '+';
-
-  // 拖曳功能
-  let isDragging = false;
-  let currentX;
-  let currentY;
-  let initialX;
-  let initialY;
-
-  container.addEventListener('mousedown', dragStart);
-  document.addEventListener('mousemove', drag);
-  document.addEventListener('mouseup', dragEnd);
-
-  function dragStart(e) {
-    if (e.target === mainButton) {
-      initialX = e.clientX - container.offsetLeft;
-      initialY = e.clientY - container.offsetTop;
-      isDragging = true;
+function extractCodeFromText(text) {
+    // Regex for XXX-YYY or XXXX-YYY patterns
+    const regex = /[a-zA-Z]{2,4}[- ]?\d{2,5}/g;
+    const matches = text.match(regex);
+    if (matches && matches.length > 0) {
+        // Return the first found code, clean up potential spaces/hyphens
+        return matches[0].replace(/[- ]/, '-').toUpperCase();
     }
-  }
+    return null;
+}
 
-  function drag(e) {
-    if (isDragging) {
-      e.preventDefault();
-      currentY = e.clientY - initialY;
-
-      // 只限制上下移動範圍
-      const maxY = window.innerHeight - 50;
-      currentY = Math.min(Math.max(0, currentY), maxY);
-
-      container.style.top = currentY + 'px';
+const observer = new MutationObserver(() => {
+    const code = getCode();
+    const container = document.querySelector('.ql-floating-container');
+    if (code && !container) {
+        createFloatingButton(code);
+    } else if (!code && container) {
+        container.remove();
     }
-  }
+});
 
-  function dragEnd() {
-    isDragging = false;
-  }
+observer.observe(document.body, { childList: true, subtree: true });
 
-  // 展開/收合功能
-  let isExpanded = false;
-  mainButton.addEventListener('click', (e) => {
-    if (!isDragging) {
-      isExpanded = !isExpanded;
-      if (isExpanded) {
-        subButtonsContainer.style.display = 'flex';
-        mainButton.style.transform = 'rotate(45deg)';
-        console.log('展開子按鈕'); // 除錯用
-      } else {
-        subButtonsContainer.style.display = 'none';
-        mainButton.style.transform = 'rotate(0deg)';
-        console.log('收起子按鈕'); // 除錯用
-      }
-    }
-  });
+// =============================================
+// Floating Button Creation & Smart Scan
+// =============================================
 
-  // 從 storage 獲取設定並創建子按鈕
-  chrome.storage.sync.get(['settings'], async (result) => {
-    console.log('載入的設定:', result.settings);
-    const settings = result.settings || [];
+// =============================================
+// Floating Button Creation & Smart Scan
+// =============================================
 
+async function updateFloatingButtons(code) {
+    const subButtonsContainer = document.querySelector('.ql-sub-buttons');
+    if (!subButtonsContainer) return;
+
+    // Clear existing buttons
     subButtonsContainer.innerHTML = '';
 
-    // 檢查所有網站的可用性
-    const availableSites = await Promise.all(
-      settings.map(async (site) => {
-        const clipboardElement = document.querySelector('.copy-to-clipboard');
-        if (!clipboardElement) return site; // 改為返回 site 而不是 null
-
-        const code = clipboardElement.getAttribute('data-clipboard-text');
-        if (!code) return site; // 改為返回 site 而不是 null
-
-        let link = site.baseUrl;
-        if (link.includes('{}')) {
-          link = link.replace('{}', code);
-        } else {
-          link += code;
-        }
-
-        try {
-          const response = await chrome.runtime.sendMessage({
-            type: 'checkUrl',
-            url: link
-          });
-
-          if (response.success) {
-            console.log(`${site.name} 可用`);
-            return site;
-          } else {
-            console.log(`${site.name} 無效 (${response.status})`);
-            return null;
-          }
-        } catch (error) {
-          console.log(`檢查 ${site.name} 時發生錯誤，假設網站可用:`, error);
-          return site; // 如果發生錯誤，我們假設網站是可用的
-        }
-      })
-    );
-
-    // 過濾掉無效的網站，只顯示可用的按鈕
-    const validSites = availableSites.filter(site => site !== null);
-
-    validSites.slice().reverse().forEach((site, index) => {
-      const subButton = document.createElement('div');
-      subButton.className = 'floating-button sub-button';
-
-      let displayText = site.name.charAt(0);
-      if (/[a-zA-Z]/.test(displayText)) {
-        displayText = displayText.toUpperCase();
-      }
-
-      subButton.textContent = displayText;
-      subButton.title = site.name;
-      subButton.style.position = 'relative';
-      subButton.style.zIndex = `${10 - index}`;
-
-      subButton.addEventListener('click', () => {
-        const clipboardElement = document.querySelector('.copy-to-clipboard');
-        if (clipboardElement) {
-          const code = clipboardElement.getAttribute('data-clipboard-text');
-          if (code) {
-            let link = site.baseUrl;
-            if (link.includes('{}')) {
-              link = link.replace('{}', code);
-            } else {
-              link += code;
-            }
-            window.location.href = link;
-          }
-        }
-      });
-
-      subButtonsContainer.appendChild(subButton);
-    });
-  });
-
-  // 設定容器結構
-  container.appendChild(subButtonsContainer);
-  container.appendChild(mainButton);
-
-  // 設定初始位置（改為右側且距離底部 100px）
-  container.style.right = '20px';
-  container.style.top = `${window.innerHeight - 100}px`;
-  container.style.left = 'auto';
-
-  document.body.appendChild(container);
-  console.log('懸浮按鈕創建完成'); // 除錯用
+    // Trigger Smart Scan with just the code
+    const response = await chrome.runtime.sendMessage({ action: 'checkUrls', code: code });
+    updateButtonStates(response.results);
 }
 
-// CSS 樣式
+async function createFloatingButton(code) {
+    let container = document.querySelector('.ql-floating-container');
+    if (container) {
+        // If container already exists, just update its buttons
+        await updateFloatingButtons(code);
+        return;
+    }
+
+    // --- Create UI Elements (only if container doesn't exist) ---
+    container = document.createElement('div');
+    container.className = 'ql-floating-container';
+
+    const mainButton = document.createElement('div');
+    mainButton.className = 'ql-floating-button ql-main-button';
+    mainButton.innerHTML = '+';
+
+    const subButtonsContainer = document.createElement('div');
+    subButtonsContainer.className = 'ql-sub-buttons';
+
+    // --- Append to DOM & Add Events ---
+    container.appendChild(subButtonsContainer); // Append empty sub-buttons container initially
+    container.appendChild(mainButton);
+    document.body.appendChild(container);
+
+    let isExpanded = false;
+    mainButton.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        subButtonsContainer.style.display = isExpanded ? 'flex' : 'none';
+        mainButton.style.transform = isExpanded ? 'rotate(45deg)' : 'rotate(0deg)';
+    });
+
+    // Now populate and update the buttons
+    await updateFloatingButtons(code);
+}
+
+function updateButtonStates(results) {
+    const subButtonsContainer = document.querySelector('.ql-sub-buttons');
+    if (!subButtonsContainer || !results) return;
+
+    // Clear existing buttons before adding new ones
+    subButtonsContainer.innerHTML = '';
+
+    results.forEach(result => {
+        const subButton = document.createElement('a');
+        subButton.id = result.id; // Use the ID from background.js (siteId_versionId)
+        subButton.className = 'ql-floating-button ql-sub-button';
+        subButton.title = result.siteName; // Use the combined site and version name
+
+        // Try to get favicon from the finalUrl or base URL
+        let faviconUrl = '';
+        try {
+            const hostname = new URL(result.finalUrl || result.url).hostname;
+            faviconUrl = `https://www.google.com/s2/favicons?domain=${hostname}`;
+        } catch (e) {
+            console.error('Error getting favicon hostname:', e);
+        }
+        if (faviconUrl) {
+            subButton.style.backgroundImage = `url(${faviconUrl})`;
+        }
+
+        switch (result.status) {
+            case 'available':
+                subButton.classList.add('status-available');
+                subButton.href = result.finalUrl; // Use the final URL after redirects
+                subButton.target = '_blank';
+                break;
+            case 'unavailable':
+                subButton.classList.add('status-unavailable');
+                subButton.style.pointerEvents = 'none'; // Make it unclickable
+                break;
+            case 'error':
+                subButton.classList.add('status-error');
+                subButton.style.pointerEvents = 'none';
+                subButton.title = `Error checking ${result.siteName}: ${result.error}`;
+                break;
+            case 'loading': // Initial state before check
+            default:
+                subButton.classList.add('status-loading');
+                break;
+        }
+        subButtonsContainer.appendChild(subButton);
+    });
+}
+
+// =============================================
+// Styling
+// =============================================
+
 const style = document.createElement('style');
 style.textContent = `
-  .floating-container {
-    position: fixed;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: center;
-    right: 20px;  /* 新增固定右側位置 */
+  .ql-floating-container {
+    position: fixed; z-index: 9999; right: 20px; bottom: 20px;
+    display: flex; flex-direction: column-reverse; align-items: center;
   }
-
-  .floating-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.3s ease;
+  .ql-floating-button {
+    width: 40px; height: 40px; border-radius: 50%;
+    background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer; user-select: none; transition: all 0.3s ease;
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none; background-size: 60%; background-position: center; background-repeat: no-repeat;
+    border: 3px solid transparent;
   }
+  .ql-main-button { background-color: #007bff; color: white; font-size: 28px; }
+  .ql-sub-buttons { display: none; flex-direction: column; margin-bottom: 10px; }
+  .ql-sub-button { background-color: #f8f9fa; margin-bottom: 10px; }
+  .ql-sub-button:hover { transform: scale(1.15); }
 
-  .main-button {
-    background: #4CAF50;
-    color: white;
-    font-size: 24px;
-    padding: 0;
-    z-index: 10001;
-    position: relative;
-  }
+  /* Status Styles */
+  .status-loading { border-color: #ffc107; /* Yellow */ animation: pulse 1.5s infinite; }
+  .status-available { border-color: #28a745; /* Green */ }
+  .status-unavailable { border-color: #dc3545; /* Red */ opacity: 0.5; }
+  .status-error { border-color: #fd7e14; /* Orange */ opacity: 0.6; }
 
-  .sub-buttons {
-    display: none;
-    flex-direction: column;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding-bottom: 10px;
-  }
-
-  .sub-button {
-    background: #2196F3;
-    color: white;
-    font-size: 16px;
-    margin-bottom: 10px;
-    position: relative;
-  }
-
-  .sub-button:hover {
-    transform: scale(1.1);
-    background: #1976D2;
-  }
-
-  /* 修改懸浮提示樣式 */
-  .sub-button:hover::after {
-    content: attr(title);
-    position: absolute;
-    right: 120%;  /* 改為 right 而不是 left */
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
   }
 `;
-
 document.head.appendChild(style);
 
-// 初始化
-createFloatingButton();
+// =============================================
+// Initial Execution & Listeners
+// =============================================
 
-// 監聽 storage 變化
+// Initial check for code on page load
+const initialCode = getCode();
+if (initialCode) {
+    createFloatingButton(initialCode);
+}
+
+// Listen for storage changes to rebuild
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (changes.settings) {
-    console.log('設定已更新，重新創建按鈕'); // 除錯用
-    createFloatingButton();
+  if (namespace === 'sync' && changes.settings) {
+    const container = document.querySelector('.ql-floating-container');
+    if (container) container.remove();
+    const code = getCode();
+    if (code) createFloatingButton(code);
   }
 });
 
-// 監聽頁面變化
-const observer = new MutationObserver(() => {
-  const code = checkForCode();
-  const container = document.querySelector('.floating-container');
+// Listen for text selection
+document.addEventListener('mouseup', () => {
+    const selectedText = window.getSelection().toString().trim();
+    if (selectedText.length > 0) {
+        // Check if current site is one of the configured sites
+        chrome.storage.sync.get(['settings'], (result) => {
+            const settings = result.settings || [];
+            const currentHostname = window.location.hostname;
+            const isConfiguredSite = settings.some(site => {
+                try {
+                    const siteHostname = new URL(site.baseUrl.replace('{}', '')).hostname;
+                    return currentHostname.includes(siteHostname);
+                } catch (e) {
+                    console.error("Error parsing site URL:", site.baseUrl, e);
+                    return false;
+                }
+            });
 
-  if (code && !container) {
-    // 如果找到番號但沒有按鈕，則創建按鈕
-    createFloatingButton();
-  } else if (!code && container) {
-    // 如果沒有番號但有按鈕，則移除按鈕
-    container.remove();
-  }
+            // If it's a configured site, do not trigger global detection
+            if (isConfiguredSite) {
+                return;
+            }
+
+            const code = extractCodeFromText(selectedText);
+            if (code) {
+                createFloatingButton(code);
+            }
+        });
+    }
 });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
+// Make the floating container draggable
+document.addEventListener('mousedown', (e) => {
+    const container = document.querySelector('.ql-floating-container');
+    if (!container || !container.contains(e.target)) return;
+
+    let shiftX = e.clientX - container.getBoundingClientRect().left;
+    let shiftY = e.clientY - container.getBoundingClientRect().top;
+
+    function moveAt(pageX, pageY) {
+        container.style.left = pageX - shiftX + 'px';
+        container.style.top = pageY - shiftY + 'px';
+    }
+
+    function onMouseMove(event) {
+        moveAt(event.pageX, event.pageY);
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+
+    container.onmouseup = function() {
+        document.removeEventListener('mousemove', onMouseMove);
+        container.onmouseup = null;
+    };
+
+    container.ondragstart = function() {
+        return false;
+    };
 });
