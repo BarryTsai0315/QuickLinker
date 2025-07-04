@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>管理設定</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .site { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>管理設定</h1>
+  <div id="sitesContainer"></div>
+  <button id="addSite">新增網站</button>
+  <button id="saveSettings">保存</button>
+  <script>
+    document.addEventListener('DOMContentLoaded', loadSettings);
+    document.getElementById('addSite').addEventListener('click', () => addSite());
+    document.getElementById('saveSettings').addEventListener('click', saveSettings);
+
+    function loadSettings() {
+      chrome.storage.sync.get(['settings'], (result) => {
+        const settings = result.settings || [];
+        const container = document.getElementById('sitesContainer');
+        container.innerHTML = '';
+        settings.forEach((site, index) => {
+          addSite(site, index);
+        });
+      });
+    }
+
+    function addSite(site = {}, index) {
+      const container = document.getElementById('sitesContainer');
+      const div = document.createElement('div');
+      div.className = 'site';
+      div.innerHTML = `
+        <h3>網站 ${index + 1}</h3>
+        <label>網站名稱: <input type="text" name="name" value="${site.name || ''}"></label><br>
+        <label>基礎網址: <input type="text" name="baseUrl" value="${site.baseUrl || ''}"></label><br>
+        <label>縮圖: <input type="text" name="iconUrl" value="${site.iconUrl || ''}"></label><br>
+      `;
+      container.appendChild(div);
+    }
+
+    function saveSettings() {
+      const sites = Array.from(document.getElementsByClassName('site')).map(div => {
+        return {
+          name: div.querySelector('input[name="name"]').value,
+          baseUrl: div.querySelector('input[name="baseUrl"]').value,
+          iconUrl: div.querySelector('input[name="iconUrl"]').value
+        };
+      });
+      chrome.storage.sync.set({ settings: sites }, () => {
+        alert('設定已保存');
+      });
+    }
+  </script>
+</body>
+</html>
