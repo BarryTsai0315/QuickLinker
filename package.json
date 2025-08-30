@@ -1,0 +1,16 @@
+{
+  "name": "quicklinker-extension",
+  "version": "1.0.0",
+  "description": "QuickLinker browser extension",
+  "main": "background.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "setupFilesAfterEnv": ["./test/jest.setup.js"],
+    "testEnvironment": "jsdom"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
