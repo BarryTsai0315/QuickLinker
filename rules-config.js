@@ -56,6 +56,36 @@ function setupEventListeners() {
   document.getElementById('domainInput').addEventListener('input', updatePreview);
   document.getElementById('ruleNameInput').addEventListener('input', updatePreview);
 
+  // Event delegation for extractors container (動態新增的提取規則)
+  document.getElementById('extractorsContainer').addEventListener('input', (e) => {
+    if (e.target.classList.contains('extractor-pattern-input') ||
+        e.target.classList.contains('extractor-transform-input')) {
+      updatePreview();
+    }
+  });
+
+  document.getElementById('extractorsContainer').addEventListener('change', (e) => {
+    if (e.target.classList.contains('extractor-type-select')) {
+      updatePreview();
+    }
+  });
+
+  // Event delegation for delete extractor buttons
+  document.getElementById('extractorsContainer').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-extractor-btn');
+    if (deleteBtn) {
+      const extractorId = deleteBtn.dataset.extractorId;
+      removeExtractor(extractorId);
+    }
+  });
+
+  // Event delegation for sites selection (動態新增的網站選項)
+  document.getElementById('sitesSelectOptions').addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox') {
+      handleSiteSelection();
+    }
+  });
+
   // Close modal when clicking outside
   document.getElementById('ruleModal').addEventListener('click', (e) => {
     if (e.target.id === 'ruleModal') closeModal();
@@ -228,7 +258,7 @@ function addExtractorRow(extractor = null) {
   row.style.marginBottom = '10px';
 
   row.innerHTML = `
-    <select class="form-select extractor-type-select" onchange="updatePreview()">
+    <select class="form-select extractor-type-select">
       <option value="selector" ${extractor?.type === 'selector' ? 'selected' : ''}>CSS 選擇器</option>
       <option value="regex" ${extractor?.type === 'regex' ? 'selected' : ''}>正則表達式</option>
       <option value="clipboard" ${extractor?.type === 'clipboard' ? 'selected' : ''}>剪貼簿</option>
@@ -239,16 +269,14 @@ function addExtractorRow(extractor = null) {
       class="form-input extractor-pattern-input"
       placeholder="提取規則"
       value="${extractor?.pattern || ''}"
-      oninput="updatePreview()"
     />
     <input
       type="text"
       class="form-input extractor-transform-input"
       placeholder="轉換方式"
       value="${extractor?.transform || 'text'}"
-      oninput="updatePreview()"
     />
-    <button type="button" class="icon-btn" onclick="removeExtractor('${extractorId}')" title="刪除">
+    <button type="button" class="icon-btn delete-extractor-btn" data-extractor-id="${extractorId}" title="刪除">
       <i class="fi fi-rr-cross"></i>
     </button>
   `;
@@ -312,7 +340,6 @@ function populateSitesOptions() {
           id="site_${siteId}"
           value="${siteId}"
           ${isChecked ? 'checked' : ''}
-          onchange="handleSiteSelection()"
         />
         <label for="site_${siteId}" style="cursor: pointer; flex: 1;">
           ${site.name} - ${version.name}
