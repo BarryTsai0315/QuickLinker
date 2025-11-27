@@ -519,9 +519,19 @@ function editRule(ruleId) {
 }
 
 async function deleteRule(ruleId) {
-  if (!confirm('確定要刪除此規則嗎？')) return;
+  console.log('[QuickLinker] Deleting rule:', ruleId);
 
+  const confirmed = confirm('確定要刪除此規則嗎？');
+  console.log('[QuickLinker] Delete confirmed:', confirmed);
+
+  if (!confirmed) return;
+
+  const beforeLength = domainRules.length;
   domainRules = domainRules.filter(r => r.id !== ruleId);
+  const afterLength = domainRules.length;
+
+  console.log('[QuickLinker] Rules count:', beforeLength, '→', afterLength);
+
   await saveRules();
   renderRules();
   showNotification('規則已刪除');
