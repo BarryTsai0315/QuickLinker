@@ -67,6 +67,25 @@ chrome.runtime.onInstalled.addListener(() => {
 
     const generateUniqueId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
+    // 數據遷移：舊格式轉新格式
+    settings = settings.map(site => {
+      if (!site.versions) {
+        // 舊格式：{ name: 'JavDB', baseUrl: '...' }
+        console.log('[QuickLinker] Migrating old format site:', site.name);
+        updated = true;
+        return {
+          id: generateUniqueId(),
+          name: site.name,
+          versions: [{
+            id: generateUniqueId(),
+            name: '預設',
+            baseUrl: site.baseUrl
+          }]
+        };
+      }
+      return site; // 已是新格式
+    });
+
     const defaultSites = [
       {
         id: generateUniqueId(),
@@ -133,13 +152,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       const { settings, scanMode } = await chrome.storage.sync.get(['settings', 'scanMode']);
       const code = message.code; // Directly receive the code
+      const limitedSites = message.limitedSites; // 新增：規則指定的網站清單
+
+      console.log('[QuickLinker Background] Checking URLs for code:', code);
+      console.log('[QuickLinker Background] Limited sites:', limitedSites);
 
       const results = [];
 
       for (const site of settings) {
         for (const version of site.versions) {
+          const siteVersionId = `${site.id}_${version.id}`;
+
+          // 如果有限定網站清單，只檢查清單內的網站
+          if (limitedSites && !limitedSites.includes(siteVersionId)) {
+            console.log('[QuickLinker Background] Skipping site:', siteVersionId);
+            continue;
+          }
+
           const fullUrl = version.baseUrl.replace('{}', code);
-          const urlInfo = { id: `${site.id}_${version.id}`, url: fullUrl, siteName: `${site.name} - ${version.name}` };
+          const urlInfo = { id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` };
+
+          console.log('[QuickLinker Background] Checking URL:', fullUrl);
 
           try {
             const response = await fetch(fullUrl, { method: 'HEAD', cache: 'no-cache' });
@@ -148,6 +181,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             } else {
               results.push({ ...urlInfo, status: 'available', finalUrl: response.url });
               if (scanMode === 'bestMatch') {
+                console.log('[QuickLinker Background] Best match found, sending response');
                 sendResponse({ results });
                 return; // Stop and send response immediately for bestMatch
               }
@@ -157,6 +191,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
         }
       }
+      console.log('[QuickLinker Background] Sending final results:', results.length, 'items');
       sendResponse({ results });
     })();
     return true; // Keep message channel open for async response

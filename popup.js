@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('importButton').addEventListener('click', () => document.getElementById('importSettings').click());
     document.getElementById('importSettings').addEventListener('change', importSettings);
 
+    // Open rules config page
+    document.getElementById('openRulesConfigBtn').addEventListener('click', () => {
+        chrome.tabs.create({ url: 'rules-config.html' });
+    });
+
     // Scan mode selection
     document.querySelectorAll('input[name="scanMode"]').forEach(radio => {
         radio.addEventListener('change', saveScanMode);

@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickLinker - 規則配置中心</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@flaticon/flaticon-uicons/css/all/all.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f7fa;
+      color: #2c3e50;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #f0f4ff;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    /* Rules Grid */
+    .rules-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .rule-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .rule-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: #667eea;
+    }
+
+    .rule-card.disabled {
+      opacity: 0.6;
+      background: #f8f9fa;
+    }
+
+    /* Rule Header */
+    .rule-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .rule-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .domain-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .rule-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 26px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #667eea;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    /* Rule Content */
+    .rule-section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .extractors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .extractor-item {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .extractor-type {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .type-selector { background: #e3f2fd; color: #1976d2; }
+    .type-regex { background: #fff3e0; color: #f57c00; }
+    .type-clipboard { background: #f3e5f5; color: #7b1fa2; }
+    .type-url { background: #e8f5e9; color: #388e3c; }
+
+    .extractor-pattern {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #2c3e50;
+      padding: 4px 8px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+
+    .sites-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .site-chip {
+      background: #667eea;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .site-chip i {
+      font-size: 10px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: #e74c3c;
+      color: white;
+      transform: rotate(90deg);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-state i {
+      font-size: 64px;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+      font-size: 20px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .empty-state p {
+      color: #999;
+      margin-bottom: 24px;
+    }
+
+    /* Multi-select Dropdown */
+    .multi-select {
+      position: relative;
+    }
+
+    .multi-select-trigger {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .multi-select-options {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .multi-select-options.active {
+      display: block;
+    }
+
+    .multi-select-option {
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .multi-select-option:hover {
+      background: #f8f9fa;
+    }
+
+    .multi-select-option input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    /* Help Text */
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Preview Panel */
+    .preview-panel {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .preview-code {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .extractor-item {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        padding: 20px;
+        width: 95%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1><i class="fi fi-rr-settings-sliders"></i> QuickLinker 規則配置中心</h1>
+      <p>設定在哪些網頁觸發浮動按鈕，以及如何提取和搜尋內容</p>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div>
+        <button class="btn btn-primary" id="addRuleBtn">
+          <i class="fi fi-rr-plus"></i> 新增規則
+        </button>
+        <button class="btn btn-secondary" id="importRulesBtn">
+          <i class="fi fi-rr-inbox-in"></i> 匯入規則
+        </button>
+      </div>
+      <div>
+        <button class="btn btn-secondary" id="exportRulesBtn">
+          <i class="fi fi-rr-inbox-out"></i> 匯出規則
+        </button>
+        <button class="btn btn-secondary" id="backToPopupBtn">
+          <i class="fi fi-rr-arrow-left"></i> 返回主介面
+        </button>
+      </div>
+    </div>
+
+    <!-- Rules List -->
+    <div class="rules-grid" id="rulesContainer">
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <i class="fi fi-rr-document"></i>
+        <h3>尚未建立任何規則</h3>
+        <p>點擊「新增規則」按鈕開始設定網域觸發條件</p>
+        <button class="btn btn-primary" onclick="document.getElementById('addRuleBtn').click()">
+          <i class="fi fi-rr-plus"></i> 立即新增
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Rule Modal -->
+  <div class="modal" id="ruleModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">新增規則</h2>
+        <button class="modal-close" id="closeModalBtn">&times;</button>
+      </div>
+
+      <form id="ruleForm">
+        <!-- Domain Input -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fi fi-rr-globe"></i> 觸發網域
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            id="domainInput"
+            placeholder="例如: github.com, amazon.com"
+            required
+          />
+          <div class="help-text">
+            <i class="fi fi-rr-info"></i>
+            在此網域上會自動觸發浮動按鈕
+          </div>
+        </div>
+
+        <!-- Rule Name -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fi fi-rr-label"></i> 規則名稱（選填）
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            id="ruleNameInput"
+            placeholder="例如: GitHub Issue 檢索"
+          />
+        </div>
+
+        <!-- Extractors Section -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fi fi-rr-magic-wand"></i> 內容提取規則
+          </label>
+          <div id="extractorsContainer">
+            <!-- Extractors will be dynamically added here -->
+          </div>
+          <button type="button" class="btn btn-secondary" id="addExtractorBtn" style="margin-top: 10px;">
+            <i class="fi fi-rr-plus"></i> 新增提取規則
+          </button>
+          <div class="help-text" style="margin-top: 10px;">
+            <i class="fi fi-rr-info"></i>
+            定義如何從網頁中提取關鍵字或代碼
+          </div>
+        </div>
+
+        <!-- Sites Selection -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fi fi-rr-link"></i> 關聯搜尋網站
+          </label>
+          <div class="multi-select" id="sitesMultiSelect">
+            <div class="multi-select-trigger" id="sitesSelectTrigger">
+              <span id="sitesSelectText">請選擇網站...</span>
+              <i class="fi fi-rr-angle-small-down"></i>
+            </div>
+            <div class="multi-select-options" id="sitesSelectOptions">
+              <!-- Options will be dynamically loaded -->
+            </div>
+          </div>
+          <div class="help-text">
+            <i class="fi fi-rr-info"></i>
+            浮動按鈕會連結到這些網站進行搜尋
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-panel">
+          <div class="preview-title">
+            <i class="fi fi-rr-eye"></i> JSON 預覽
+          </div>
+          <div class="preview-code" id="rulePreview">{}</div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">
+            <i class="fi fi-rr-disk"></i> 儲存規則
+          </button>
+          <button type="button" class="btn btn-secondary" id="cancelModalBtn">
+            取消
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="rules-config.js"></script>
+</body>
+</html>

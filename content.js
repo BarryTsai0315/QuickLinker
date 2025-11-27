@@ -1,8 +1,107 @@
 // =============================================
-// DOM & Observers
+// Rule Engine (New System)
 // =============================================
 
-function getCode() {
+// 全域快取規則，避免重複讀取 storage
+let cachedDomainRules = [];
+let rulesLoaded = false;
+
+async function loadDomainRules() {
+    if (rulesLoaded) return cachedDomainRules;
+
+    const result = await chrome.storage.sync.get(['domainRules']);
+    cachedDomainRules = result.domainRules || [];
+    rulesLoaded = true;
+    console.log('[QuickLinker] Loaded domain rules:', cachedDomainRules);
+    return cachedDomainRules;
+}
+
+async function extractCodeByRules() {
+    const domainRules = await loadDomainRules();
+    const currentDomain = location.hostname;
+
+    console.log('[QuickLinker] Current domain:', currentDomain);
+
+    // 找到匹配當前網域的規則
+    const matchedRule = domainRules.find(rule =>
+        rule.enabled && currentDomain.includes(rule.domain)
+    );
+
+    if (!matchedRule) {
+        console.log('[QuickLinker] No matching rule found');
+        return null;
+    }
+
+    console.log('[QuickLinker] Matched rule:', matchedRule);
+
+    // 按順序執行提取規則
+    for (const extractor of matchedRule.extractors) {
+        let result = null;
+
+        try {
+            console.log('[QuickLinker] Testing extractor:', extractor);
+
+            switch (extractor.type) {
+                case 'selector':
+                    const element = document.querySelector(extractor.pattern);
+                    if (element) {
+                        switch (extractor.transform) {
+                            case 'text':
+                                result = element.textContent.trim();
+                                break;
+                            case 'href':
+                                result = element.href;
+                                break;
+                            default:
+                                // data-* 或其他屬性
+                                result = element.getAttribute(extractor.transform);
+                        }
+                    }
+                    break;
+
+                case 'regex':
+                    const textContent = document.body.textContent;
+                    const match = textContent.match(new RegExp(extractor.pattern));
+                    if (match) {
+                        // transform 格式: match_1, match_2 等
+                        const matchIndex = parseInt(extractor.transform.replace('match_', '')) || 0;
+                        result = match[matchIndex];
+                    }
+                    break;
+
+                case 'clipboard':
+                    const clipboardElement = document.querySelector('.copy-to-clipboard');
+                    if (clipboardElement) {
+                        result = clipboardElement.getAttribute('data-clipboard-text');
+                    }
+                    break;
+
+                case 'url':
+                    result = location.href;
+                    break;
+            }
+
+            if (result) {
+                console.log('[QuickLinker] Extraction successful:', result);
+                return {
+                    code: result,
+                    sites: matchedRule.sites  // 只檢查規則指定的網站
+                };
+            }
+        } catch (error) {
+            console.error('[QuickLinker] Extractor error:', error);
+        }
+    }
+
+    console.log('[QuickLinker] All extractors failed');
+    return null;
+}
+
+// =============================================
+// Legacy Code Extraction (Fallback)
+// =============================================
+
+function getCodeLegacy() {
     const clipboardElement = document.querySelector('.copy-to-clipboard');
     if (clipboardElement) {
         return clipboardElement.getAttribute('data-clipboard-text');
@@ -22,6 +121,25 @@ function getCode() {
     return null;
 }
 
+// 統一入口函數（新系統）
+async function getCode() {
+    // 優先使用規則提取
+    const ruleResult = await extractCodeByRules();
+    if (ruleResult) {
+        console.log('[QuickLinker] Using rule-based extraction');
+        return ruleResult;
+    }
+
+    // 備用：使用舊邏輯
+    const legacyCode = getCodeLegacy();
+    if (legacyCode) {
+        console.log('[QuickLinker] Using legacy extraction:', legacyCode);
+        return { code: legacyCode, sites: null };
+    }
+
+    return null;
+}
+
 function extractCodeFromText(text) {
     // Regex for XXX-YYY or XXXX-YYY patterns
     const regex = /[a-zA-Z]{2,4}[- ]?\d{2,5}/g;
@@ -33,12 +151,12 @@ function extractCodeFromText(text) {
     return null;
 }
 
-const observer = new MutationObserver(() => {
-    const code = getCode();
+const observer = new MutationObserver(async () => {
+    const extractResult = await getCode();
     const container = document.querySelector('.ql-floating-container');
-    if (code && !container) {
-        createFloatingButton(code);
-    } else if (!code && container) {
+    if (extractResult && !container) {
+        createFloatingButton(extractResult);
+    } else if (!extractResult && container) {
         container.remove();
     }
 });
@@ -53,23 +171,50 @@ observer.observe(document.body, { childList: true, subtree: true });
 // Floating Button Creation & Smart Scan
 // =============================================
 
-async function updateFloatingButtons(code) {
+async function updateFloatingButtons(code, limitedSites = null) {
     const subButtonsContainer = document.querySelector('.ql-sub-buttons');
     if (!subButtonsContainer) return;
 
     // Clear existing buttons
     subButtonsContainer.innerHTML = '';
 
-    // Trigger Smart Scan with just the code
-    const response = await chrome.runtime.sendMessage({ action: 'checkUrls', code: code });
+    console.log('[QuickLinker] Checking URLs for code:', code, 'limitedSites:', limitedSites);
+
+    // Trigger Smart Scan with code and optional limitedSites
+    const response = await chrome.runtime.sendMessage({
+        action: 'checkUrls',
+        code: code,
+        limitedSites: limitedSites  // 新增參數
+    });
     updateButtonStates(response.results);
 }
 
-async function createFloatingButton(code) {
+async function createFloatingButton(extractResult) {
+    // 支援兩種輸入格式：
+    // 1. 舊格式: createFloatingButton('ABC-123')
+    // 2. 新格式: createFloatingButton({ code: 'ABC-123', sites: [...] })
+
+    let code, limitedSites;
+
+    if (typeof extractResult === 'string') {
+        // 舊格式（向下相容）
+        code = extractResult;
+        limitedSites = null;
+        console.log('[QuickLinker] Using legacy format');
+    } else if (extractResult && extractResult.code) {
+        // 新格式
+        code = extractResult.code;
+        limitedSites = extractResult.sites;
+        console.log('[QuickLinker] Using new format with limitedSites:', limitedSites);
+    } else {
+        console.error('[QuickLinker] Invalid extractResult format:', extractResult);
+        return;
+    }
+
     let container = document.querySelector('.ql-floating-container');
     if (container) {
         // If container already exists, just update its buttons
-        await updateFloatingButtons(code);
+        await updateFloatingButtons(code, limitedSites);
         return;
     }
 
@@ -97,7 +242,7 @@ async function createFloatingButton(code) {
     });
 
     // Now populate and update the buttons
-    await updateFloatingButtons(code);
+    await updateFloatingButtons(code, limitedSites);
 }
 
 function updateButtonStates(results) {
@@ -191,18 +336,28 @@ document.head.appendChild(style);
 // =============================================
 
 // Initial check for code on page load
-const initialCode = getCode();
-if (initialCode) {
-    createFloatingButton(initialCode);
-}
+(async () => {
+    const extractResult = await getCode();
+    if (extractResult) {
+        createFloatingButton(extractResult);
+    }
+})();
 
 // Listen for storage changes to rebuild
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.settings) {
+  if (namespace === 'sync' && (changes.settings || changes.domainRules)) {
+    // 清除規則快取
+    rulesLoaded = false;
+    cachedDomainRules = [];
+
+    // 重新提取並創建按鈕
     const container = document.querySelector('.ql-floating-container');
     if (container) container.remove();
-    const code = getCode();
-    if (code) createFloatingButton(code);
+
+    (async () => {
+        const extractResult = await getCode();
+        if (extractResult) createFloatingButton(extractResult);
+    })();
   }
 });
 
