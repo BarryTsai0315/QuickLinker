@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "QuickLinker",
-    "version": "2.0.1",
+    "version": "3.0.0",
     "permissions": [
       "contextMenus",
       "storage",
@@ -21,7 +21,7 @@
       "256": "icons/icon256.png",
       "512": "icons/icon512.png"
     },
-    "description": "QuickLinker is a browser extension that allows you to quickly create and manage links to your favorite websites.",
+    "description": "Intelligent link aggregation tool with rule-based content extraction. Configure custom domain rules to automatically detect and search across multiple websites.",
     "content_scripts": [
       {
         "matches": ["*://*/*"],
