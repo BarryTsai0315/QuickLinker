@@ -265,7 +265,7 @@ function removeExtractor(extractorId) {
   }
 }
 
-function getExtractorsFromForm() {
+function getExtractorsFromForm(includeEmpty = false) {
   const extractors = [];
   const rows = document.querySelectorAll('#extractorsContainer .extractor-item');
 
@@ -274,7 +274,9 @@ function getExtractorsFromForm() {
     const pattern = row.querySelector('.extractor-pattern-input').value.trim();
     const transform = row.querySelector('.extractor-transform-input').value.trim() || 'text';
 
-    if (pattern) {
+    // 如果 includeEmpty 為 true（預覽模式），即使 pattern 為空也要顯示
+    // 如果 includeEmpty 為 false（保存模式），只有 pattern 有值才加入
+    if (includeEmpty || pattern) {
       extractors.push({ type, pattern, transform });
     }
   });
@@ -361,7 +363,7 @@ document.addEventListener('click', (e) => {
 function updatePreview() {
   const domain = document.getElementById('domainInput').value.trim();
   const name = document.getElementById('ruleNameInput').value.trim();
-  const extractors = getExtractorsFromForm();
+  const extractors = getExtractorsFromForm(true); // 預覽模式：包含空的 extractors
 
   const ruleObject = {
     id: currentEditingRuleId || 'new_rule_id',
