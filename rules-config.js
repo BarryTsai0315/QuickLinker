@@ -86,6 +86,33 @@ function setupEventListeners() {
     }
   });
 
+  // Event delegation for rule cards (編輯、刪除、Toggle)
+  document.getElementById('rulesContainer').addEventListener('click', (e) => {
+    // Edit button
+    const editBtn = e.target.closest('.edit-rule-btn');
+    if (editBtn) {
+      const ruleId = editBtn.dataset.ruleId;
+      editRule(ruleId);
+      return;
+    }
+
+    // Delete button
+    const deleteBtn = e.target.closest('.delete-rule-btn');
+    if (deleteBtn) {
+      const ruleId = deleteBtn.dataset.ruleId;
+      deleteRule(ruleId);
+      return;
+    }
+  });
+
+  // Event delegation for rule toggle
+  document.getElementById('rulesContainer').addEventListener('change', (e) => {
+    if (e.target.classList.contains('rule-toggle')) {
+      const ruleId = e.target.dataset.ruleId;
+      toggleRule(ruleId);
+    }
+  });
+
   // Close modal when clicking outside
   document.getElementById('ruleModal').addEventListener('click', (e) => {
     if (e.target.id === 'ruleModal') closeModal();
@@ -119,27 +146,38 @@ function createRuleCard(rule) {
   card.className = `rule-card ${rule.enabled ? '' : 'disabled'}`;
   card.dataset.ruleId = rule.id;
 
-  // Get site names
+  // Get site names with version info
   const linkedSites = rule.sites.map(siteId => {
-    const site = availableSites.find(s => s.id === siteId);
-    return site ? site.name : '未知網站';
+    // Parse site_xxx_version_yyy format
+    const parts = siteId.split('_');
+    if (parts.length >= 4) {
+      const actualSiteId = `${parts[0]}_${parts[1]}`;
+      const versionId = `${parts[2]}_${parts[3]}`;
+
+      const site = availableSites.find(s => s.id === actualSiteId);
+      if (site) {
+        const version = site.versions.find(v => v.id === versionId);
+        return version ? `${site.name} - ${version.name}` : site.name;
+      }
+    }
+    return '未知網站';
   });
 
   card.innerHTML = `
     <div class="rule-header">
       <div class="rule-title">
-        <span class="domain-badge">${rule.domain}</span>
-        ${rule.name ? `<span style="color: #666; font-size: 14px;">${rule.name}</span>` : ''}
+        <span class="domain-badge">${escapeHtml(rule.domain)}</span>
+        ${rule.name ? `<span style="color: #666; font-size: 14px;">${escapeHtml(rule.name)}</span>` : ''}
       </div>
       <div class="rule-actions">
         <label class="toggle-switch">
-          <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleRule('${rule.id}')">
+          <input type="checkbox" ${rule.enabled ? 'checked' : ''} class="rule-toggle" data-rule-id="${rule.id}">
           <span class="slider"></span>
         </label>
-        <button class="icon-btn" onclick="editRule('${rule.id}')" title="編輯">
+        <button class="icon-btn edit-rule-btn" data-rule-id="${rule.id}" title="編輯">
           <i class="fi fi-rr-edit"></i>
         </button>
-        <button class="icon-btn" onclick="deleteRule('${rule.id}')" title="刪除">
+        <button class="icon-btn delete-rule-btn" data-rule-id="${rule.id}" title="刪除">
           <i class="fi fi-rr-trash"></i>
         </button>
       </div>
