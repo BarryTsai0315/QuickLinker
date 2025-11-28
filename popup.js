@@ -23,6 +23,20 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', saveScanMode);
     });
 
+    // Event delegation for site card buttons (only add once)
+    document.getElementById('sitesContainer').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-site-btn');
+        const deleteBtn = e.target.closest('.delete-site-btn');
+
+        if (editBtn) {
+            const siteId = editBtn.dataset.siteId;
+            editSite(siteId);
+        } else if (deleteBtn) {
+            const siteId = deleteBtn.dataset.siteId;
+            deleteSite(siteId);
+        }
+    });
+
     // Initial load
     loadSettingsAndRender();
 });
@@ -30,11 +44,35 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentSettings = []; // Global variable to hold current settings
 
 function showTab(tabName) {
+    console.log('[QuickLinker] Switching to tab:', tabName);
+
+    // Remove active class from all tabs and buttons
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
 
-    document.getElementById(`${tabName}Content` || `${tabName}Sites` || `${tabName}Form`).classList.add('active');
-    document.getElementById(`${tabName}Tab`).classList.add('active');
+    // Map tab names to content IDs
+    const tabContentMap = {
+        'saved': 'savedSites',
+        'settings': 'settingsContent',
+        'add': 'addSiteForm'
+    };
+
+    const contentId = tabContentMap[tabName];
+    const buttonId = `${tabName}Tab`;
+
+    console.log('[QuickLinker] Content ID:', contentId, 'Button ID:', buttonId);
+
+    if (contentId && document.getElementById(contentId)) {
+        document.getElementById(contentId).classList.add('active');
+    } else {
+        console.error('[QuickLinker] Tab content not found:', contentId);
+    }
+
+    if (document.getElementById(buttonId)) {
+        document.getElementById(buttonId).classList.add('active');
+    } else {
+        console.error('[QuickLinker] Tab button not found:', buttonId);
+    }
 }
 
 async function loadSettingsAndRender() {
@@ -57,47 +95,59 @@ function renderSites(settings) {
     container.innerHTML = '';
 
     if (settings.length === 0) {
-        container.innerHTML = '<p>沒有儲存的網站。請到「新增網站」頁面新增。</p>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fi fi-rr-globe"></i>
+                <h3>尚未新增任何網站</h3>
+                <p>點擊上方「新增」標籤開始設定網站</p>
+            </div>
+        `;
         return;
     }
 
     settings.forEach(site => {
-        const siteDiv = document.createElement('div');
-        siteDiv.className = 'site-item sortable-item';
-        siteDiv.dataset.id = site.id;
-        siteDiv.innerHTML = `
+        const siteCard = document.createElement('div');
+        siteCard.className = 'site-card sortable-item';
+        siteCard.dataset.id = site.id;
+        siteCard.setAttribute('draggable', 'true'); // Enable dragging
+
+        // Escape HTML to prevent XSS
+        const escapeName = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+
+        siteCard.innerHTML = `
             <div class="site-header">
-                <span class="drag-handle">☰</span>
-                <span class="site-name-display">${site.name}</span>
-                <button class="toggle-versions-btn">▼</button>
-                <button class="edit-site-btn" title="編輯網站"><i class="fi fi-rr-edit"></i></button>
-                <button class="delete-site-btn" title="刪除網站"><i class="fi fi-rs-trash"></i></button>
-            </div>
-            <div class="site-versions-container" style="display: none;">
-                <div class="versions-list sortable-list" data-site-id="${site.id}">
-                    <!-- Versions will be rendered here -->
+                <div class="site-name">
+                    <i class="fi fi-rr-globe"></i>
+                    ${escapeName(site.name)}
                 </div>
-                <div class="add-version-form">
-                    <input type="text" class="new-version-name" placeholder="版本名稱 (例如: 無碼)">
-                    <input type="text" class="new-version-url" placeholder="URL (使用 {} 作為番號佔位符)">
-                    <button class="add-version-btn" data-site-id="${site.id}"><i class="fi fi-rr-add"></i> 新增版本</button>
+                <div class="site-actions">
+                    <button class="icon-btn drag drag-handle" title="拖曳排序">
+                        <i class="fi fi-rr-apps-sort"></i>
+                    </button>
+                    <button class="icon-btn edit edit-site-btn" data-site-id="${site.id}" title="編輯">
+                        <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button class="icon-btn delete delete-site-btn" data-site-id="${site.id}" title="刪除">
+                        <i class="fi fi-rr-trash-xmark"></i>
+                    </button>
                 </div>
             </div>
+            ${site.versions ? site.versions.map(version => `
+                <div class="version-item">
+                    <div class="version-name">
+                        <i class="fi fi-rr-link"></i>
+                        ${escapeName(version.name)}
+                    </div>
+                </div>
+                <div class="version-url">${escapeName(version.baseUrl)}</div>
+            `).join('') : ''}
         `;
-        container.appendChild(siteDiv);
 
-        // Render versions for this site
-        renderVersions(site.id, site.versions);
-
-        // Add event listeners for site actions
-        siteDiv.querySelector('.toggle-versions-btn').addEventListener('click', (e) => {
-            const versionsContainer = e.target.closest('.site-item').querySelector('.site-versions-container');
-            versionsContainer.style.display = versionsContainer.style.display === 'none' ? 'block' : 'none';
-            e.target.textContent = versionsContainer.style.display === 'none' ? '▼' : '▲';
-        });
-        siteDiv.querySelector('.edit-site-btn').addEventListener('click', (e) => editSite(site.id));
-        siteDiv.querySelector('.delete-site-btn').addEventListener('click', (e) => deleteSite(site.id));
-        siteDiv.querySelector('.add-version-btn').addEventListener('click', (e) => addVersion(site.id));
+        container.appendChild(siteCard);
     });
 }
 
@@ -169,9 +219,29 @@ async function editSite(siteId) {
     const site = currentSettings.find(s => s.id === siteId);
     if (!site) return;
 
+    // Edit site name
     const newName = prompt('編輯網站名稱:', site.name);
-    if (newName !== null && newName.trim() !== '') {
+    if (newName === null) return; // User cancelled
+
+    // Edit URL from the first version (default version)
+    let newUrl = null;
+    if (site.versions && site.versions.length > 0) {
+        newUrl = prompt('編輯基礎 URL:\n(使用 {} 作為搜尋關鍵字的佔位符)', site.versions[0].baseUrl);
+        if (newUrl === null) return; // User cancelled
+    }
+
+    // Apply changes
+    let hasChanges = false;
+    if (newName.trim() !== '' && newName !== site.name) {
         site.name = newName.trim();
+        hasChanges = true;
+    }
+    if (newUrl && newUrl.trim() !== '' && site.versions[0]) {
+        site.versions[0].baseUrl = newUrl.trim();
+        hasChanges = true;
+    }
+
+    if (hasChanges) {
         await saveSettings(currentSettings);
         loadSettingsAndRender();
     }
