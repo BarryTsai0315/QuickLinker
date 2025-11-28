@@ -6,6 +6,28 @@
 let cachedDomainRules = [];
 let rulesLoaded = false;
 
+/**
+ * 檢查網域是否匹配規則（支持萬用字元 *）
+ * @param {string} currentDomain - 當前網域 (例如: www.google.com)
+ * @param {string} rulePattern - 規則模式 (例如: *.google.*, www.google.*)
+ * @returns {boolean} 是否匹配
+ */
+function matchDomain(currentDomain, rulePattern) {
+    // 如果沒有萬用字元，使用簡單的 includes 匹配
+    if (!rulePattern.includes('*')) {
+        return currentDomain.includes(rulePattern);
+    }
+
+    // 將萬用字元模式轉換為正則表達式
+    // 1. 轉義特殊字元（除了 *）
+    const escapedPattern = rulePattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    // 2. 將 * 轉換為 .*（匹配任意字元）
+    const regexPattern = '^' + escapedPattern.replace(/\*/g, '.*') + '$';
+    const regex = new RegExp(regexPattern);
+
+    return regex.test(currentDomain);
+}
+
 async function loadDomainRules() {
     if (rulesLoaded) return cachedDomainRules;
 
@@ -22,9 +44,9 @@ async function extractCodeByRules() {
 
     console.log('[QuickLinker] Current domain:', currentDomain);
 
-    // 找到匹配當前網域的規則
+    // 找到匹配當前網域的規則（支持萬用字元）
     const matchedRule = domainRules.find(rule =>
-        rule.enabled && currentDomain.includes(rule.domain)
+        rule.enabled && matchDomain(currentDomain, rule.domain)
     );
 
     if (!matchedRule) {
@@ -33,6 +55,15 @@ async function extractCodeByRules() {
     }
 
     console.log('[QuickLinker] Matched rule:', matchedRule);
+
+    // 如果沒有提取規則（auto 模式），返回 null 使用 fallback
+    if (!matchedRule.extractors || matchedRule.extractors.length === 0) {
+        console.log('[QuickLinker] No extractors defined, using fallback');
+        return {
+            code: null,  // 將由 getCodeLegacy() 處理
+            sites: matchedRule.sites
+        };
+    }
 
     // 按順序執行提取規則
     for (const extractor of matchedRule.extractors) {
@@ -126,11 +157,22 @@ async function getCode() {
     // 優先使用規則提取
     const ruleResult = await extractCodeByRules();
     if (ruleResult) {
+        // 如果規則匹配但 code 為 null（auto 模式），使用 legacy fallback
+        if (ruleResult.code === null) {
+            const legacyCode = getCodeLegacy();
+            if (legacyCode) {
+                console.log('[QuickLinker] Using auto mode with legacy extraction:', legacyCode);
+                return { code: legacyCode, sites: ruleResult.sites };
+            }
+            // 如果 legacy 也失敗，返回 null 但保留 sites 信息
+            return null;
+        }
+
         console.log('[QuickLinker] Using rule-based extraction');
         return ruleResult;
     }
 
-    // 備用：使用舊邏輯
+    // 備用：使用舊邏輯（無規則匹配時）
     const legacyCode = getCodeLegacy();
     if (legacyCode) {
         console.log('[QuickLinker] Using legacy extraction:', legacyCode);

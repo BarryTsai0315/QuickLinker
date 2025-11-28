@@ -746,10 +746,7 @@
       <div class="empty-state" id="emptyState">
         <i class="fi fi-rr-document"></i>
         <h3>尚未建立任何規則</h3>
-        <p>點擊「新增規則」按鈕開始設定網域觸發條件</p>
-        <button class="btn btn-primary" onclick="document.getElementById('addRuleBtn').click()">
-          <i class="fi fi-rr-plus"></i> 立即新增
-        </button>
+        <p>點擊上方「新增規則」按鈕開始設定網域觸發條件</p>
       </div>
     </div>
   </div>
@@ -794,10 +791,54 @@
           />
         </div>
 
-        <!-- Extractors Section -->
+        <!-- Extraction Mode Selection -->
         <div class="form-group">
           <label class="form-label">
-            <i class="fi fi-rr-magic-wand"></i> 內容提取規則
+            <i class="fi fi-rr-magic-wand"></i> 內容提取方式
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;">
+              <input type="radio" name="extractionMode" value="auto" id="modeAuto" style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+              <div>
+                <div style="font-weight: 600; color: #2c3e50;">🤖 自動偵測</div>
+                <div style="font-size: 12px; color: #999;">從網址或頁面內容自動判斷（適用於所有網站）</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;">
+              <input type="radio" name="extractionMode" value="template" id="modeTemplate" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: #2c3e50;">📋 使用範本</div>
+                <div style="font-size: 12px; color: #999;">選擇預設範本，一鍵完成配置</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;">
+              <input type="radio" name="extractionMode" value="custom" id="modeCustom" style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+              <div>
+                <div style="font-weight: 600; color: #2c3e50;">⚙️ 進階自訂</div>
+                <div style="font-size: 12px; color: #999;">手動配置 CSS Selector 或正則表達式</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Template Selection (shown when mode=template) -->
+        <div class="form-group" id="templateSelection" style="display: block;">
+          <label class="form-label">
+            <i class="fi fi-rr-apps"></i> 選擇範本
+          </label>
+          <select class="form-input" id="templateSelect">
+            <option value="">請選擇網站範本...</option>
+          </select>
+          <div class="help-text">
+            <i class="fi fi-rr-info"></i>
+            選擇後會自動填入觸發網域和提取規則
+          </div>
+        </div>
+
+        <!-- Custom Extractors Section (shown when mode=custom) -->
+        <div class="form-group" id="customExtractors" style="display: none;">
+          <label class="form-label">
+            <i class="fi fi-rr-code"></i> 自訂提取規則
           </label>
           <div id="extractorsContainer">
             <!-- Extractors will be dynamically added here -->

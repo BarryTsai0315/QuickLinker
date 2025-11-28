@@ -1,10 +1,61 @@
 // =============================================
+// Extraction Templates Library
+// =============================================
+
+const EXTRACTION_TEMPLATES = {
+  'auto': {
+    label: '自動偵測（通用）',
+    description: '從網址或頁面內容自動判斷',
+    icon: '🤖',
+    domains: ['*'],
+    extractors: null  // 使用 getCodeLegacy() fallback
+  },
+  'javdb': {
+    label: 'JavDB - 影片番號',
+    description: '適用於 JavDB 影片頁面',
+    icon: '🎬',
+    domains: ['javdb.com', '*.javdb.com'],
+    extractors: [
+      { type: 'selector', pattern: '.video-meta-panel .value', transform: 'text' }
+    ]
+  },
+  'javlibrary': {
+    label: 'JavLibrary - 影片番號',
+    description: '適用於 JavLibrary 影片頁面',
+    icon: '📚',
+    domains: ['javlibrary.com', '*.javlibrary.com'],
+    extractors: [
+      { type: 'selector', pattern: '#video_id .text', transform: 'text' }
+    ]
+  },
+  'github-issue': {
+    label: 'GitHub - Issue 編號',
+    description: '從 GitHub Issue 頁面提取編號',
+    icon: '🐙',
+    domains: ['github.com', '*.github.com'],
+    extractors: [
+      { type: 'regex', pattern: '/issues/(\\d+)', transform: 'match_1' }
+    ]
+  },
+  'amazon': {
+    label: 'Amazon - 產品 ASIN',
+    description: '從 Amazon 產品頁提取 ASIN 碼',
+    icon: '📦',
+    domains: ['amazon.com', 'amazon.co.jp', '*.amazon.*'],
+    extractors: [
+      { type: 'regex', pattern: '/dp/([A-Z0-9]{10})', transform: 'match_1' }
+    ]
+  }
+};
+
+// =============================================
 // Global State
 // =============================================
 
 let domainRules = [];
 let availableSites = [];
 let currentEditingRuleId = null;
+let currentExtractionMode = 'template'; // 'auto', 'template', 'custom'
 
 // =============================================
 // Initialization
@@ -30,6 +81,14 @@ function setupEventListeners() {
 
   // Form submission
   document.getElementById('ruleForm').addEventListener('submit', handleFormSubmit);
+
+  // Extraction mode switching
+  document.querySelectorAll('input[name="extractionMode"]').forEach(radio => {
+    radio.addEventListener('change', handleModeChange);
+  });
+
+  // Template selection
+  document.getElementById('templateSelect').addEventListener('change', handleTemplateSelect);
 
   // Extractor management
   document.getElementById('addExtractorBtn').addEventListener('click', addExtractorRow);
@@ -237,6 +296,68 @@ function escapeHtml(text) {
 }
 
 // =============================================
+// Extraction Mode Management
+// =============================================
+
+function handleModeChange(e) {
+  const mode = e.target.value;
+  currentExtractionMode = mode;
+
+  // Hide all mode-specific sections
+  document.getElementById('templateSelection').style.display = 'none';
+  document.getElementById('customExtractors').style.display = 'none';
+
+  // Show relevant section
+  if (mode === 'template') {
+    document.getElementById('templateSelection').style.display = 'block';
+    populateTemplateSelect();
+  } else if (mode === 'custom') {
+    document.getElementById('customExtractors').style.display = 'block';
+    // Ensure at least one extractor row exists
+    if (document.getElementById('extractorsContainer').children.length === 0) {
+      addExtractorRow();
+    }
+  }
+
+  updatePreview();
+}
+
+function populateTemplateSelect() {
+  const select = document.getElementById('templateSelect');
+  select.innerHTML = '<option value="">請選擇網站範本...</option>';
+
+  Object.entries(EXTRACTION_TEMPLATES).forEach(([key, template]) => {
+    if (key === 'auto') return; // Skip auto mode in template selection
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = `${template.icon} ${template.label}`;
+    select.appendChild(option);
+  });
+}
+
+function handleTemplateSelect(e) {
+  const templateKey = e.target.value;
+  if (!templateKey) return;
+
+  const template = EXTRACTION_TEMPLATES[templateKey];
+  if (!template) return;
+
+  // Auto-fill domain (use first domain from template)
+  const domainInput = document.getElementById('domainInput');
+  if (template.domains && template.domains.length > 0) {
+    domainInput.value = template.domains[0];
+  }
+
+  // Auto-fill rule name if empty
+  const ruleNameInput = document.getElementById('ruleNameInput');
+  if (!ruleNameInput.value.trim()) {
+    ruleNameInput.value = template.label;
+  }
+
+  updatePreview();
+}
+
+// =============================================
 // Modal Management
 // =============================================
 
@@ -257,19 +378,31 @@ function openModal(ruleId = null) {
       document.getElementById('domainInput').value = rule.domain;
       document.getElementById('ruleNameInput').value = rule.name || '';
 
-      // Populate extractors
-      rule.extractors.forEach(ext => addExtractorRow(ext));
+      // Determine extraction mode based on extractors
+      if (!rule.extractors || rule.extractors.length === 0) {
+        document.getElementById('modeAuto').checked = true;
+        currentExtractionMode = 'auto';
+      } else {
+        document.getElementById('modeCustom').checked = true;
+        currentExtractionMode = 'custom';
+        // Populate extractors
+        rule.extractors.forEach(ext => addExtractorRow(ext));
+      }
 
       // Set selected sites
       selectedSiteIds = [...rule.sites];
       updateSitesSelectText();
     }
   } else {
-    // Add mode
+    // Add mode - default to template mode
     modalTitle.textContent = '新增規則';
-    addExtractorRow(); // Add one default extractor
+    document.getElementById('modeTemplate').checked = true;
+    currentExtractionMode = 'template';
     selectedSiteIds = [];
   }
+
+  // Trigger mode change to show/hide appropriate sections
+  handleModeChange({ target: { value: currentExtractionMode } });
 
   populateSitesOptions();
   updatePreview();
@@ -456,16 +589,33 @@ async function handleFormSubmit(e) {
 
   const domain = document.getElementById('domainInput').value.trim();
   const name = document.getElementById('ruleNameInput').value.trim();
-  const extractors = getExtractorsFromForm();
+
+  // Get extractors based on selected mode
+  let extractors = [];
+  if (currentExtractionMode === 'auto') {
+    // Auto mode: no extractors (use fallback in content.js)
+    extractors = [];
+  } else if (currentExtractionMode === 'template') {
+    // Template mode: get extractors from selected template
+    const templateKey = document.getElementById('templateSelect').value;
+    if (!templateKey) {
+      alert('請選擇一個範本');
+      return;
+    }
+    const template = EXTRACTION_TEMPLATES[templateKey];
+    extractors = template.extractors || [];
+  } else if (currentExtractionMode === 'custom') {
+    // Custom mode: get extractors from form
+    extractors = getExtractorsFromForm();
+    if (extractors.length === 0) {
+      alert('請至少新增一個提取規則');
+      return;
+    }
+  }
 
   // Validation
   if (!domain) {
     alert('請輸入觸發網域');
-    return;
-  }
-
-  if (extractors.length === 0) {
-    alert('請至少新增一個提取規則');
     return;
   }
 
