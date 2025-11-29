@@ -328,21 +328,14 @@ function updateButtonStates(results) {
             case 'available':
                 subButton.classList.add('status-available');
                 subButton.href = result.finalUrl; // Use the final URL after redirects
-                subButton.target = '_blank';
 
-                // Add click handler for close original tab feature
-                subButton.addEventListener('click', async (e) => {
-                    const closeOriginalTabSetting = await chrome.storage.sync.get(['closeOriginalTab']);
-                    if (closeOriginalTabSetting.closeOriginalTab) {
-                        e.preventDefault(); // Prevent default link behavior
-
-                        // Open in new tab
-                        chrome.runtime.sendMessage({
-                            action: 'openAndClose',
-                            url: result.finalUrl
-                        });
+                // Set target based on closeOriginalTab setting
+                chrome.storage.sync.get(['closeOriginalTab'], (setting) => {
+                    if (setting.closeOriginalTab) {
+                        subButton.target = '_self'; // Navigate in current tab
+                    } else {
+                        subButton.target = '_blank'; // Open in new tab
                     }
-                    // If closeOriginalTab is false, let default link behavior work (target="_blank")
                 });
                 break;
             case 'unavailable':
