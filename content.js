@@ -99,6 +99,16 @@ function extractCodeByDomain(domain) {
         }
     }
 
+    // FC2PPVDB - FC2 編號提取
+    if (domain.includes('fc2ppvdb.com')) {
+        const element = document.querySelector('span.text-white.ml-2');
+        if (element) {
+            const text = element.textContent.trim();
+            console.log('[QuickLinker] FC2PPVDB match:', text);
+            return text;
+        }
+    }
+
     // 其他網站：使用通用邏輯
     console.log('[QuickLinker] No specific extractor, trying generic methods');
     return null;
@@ -168,8 +178,8 @@ function getCodeLegacy() {
 async function getCode() {
     const currentDomain = location.hostname;
 
-    // 【寫死邏輯】：JavDB 和 JavLibrary 自動啟用，不需要規則配置
-    const hardcodedDomains = ['javdb.com', 'javlibrary.com'];
+    // 【寫死邏輯】：JavDB、JavLibrary、FC2PPVDB 自動啟用，不需要規則配置
+    const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2ppvdb.com'];
     const isHardcodedDomain = hardcodedDomains.some(domain => currentDomain.includes(domain));
 
     if (isHardcodedDomain) {
