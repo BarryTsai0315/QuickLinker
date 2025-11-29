@@ -14,21 +14,18 @@ function createContextMenu(settings) {
     });
 
     settings.forEach(site => {
-      // Create a parent context menu item for each site
-      chrome.contextMenus.create({
-        id: site.id,
-        parentId: "parent",
-        title: site.name,
-        contexts: ["selection"]
-      });
-
-      // Create sub-menu items for each version of the site
+      // 直接創建一層選單：網站名稱 - 版本名稱
       if (Array.isArray(site.versions)) {
         site.versions.forEach(version => {
+          // 組合顯示名稱
+          const displayName = site.versions.length > 1
+            ? `${site.name} - ${version.name}`  // 多版本時顯示版本名稱
+            : site.name;  // 單版本時只顯示網站名稱
+
           chrome.contextMenus.create({
             id: `${site.id}_${version.id}`,
-            parentId: site.id,
-            title: version.name,
+            parentId: "parent",
+            title: displayName,
             contexts: ["selection"]
           });
         });
