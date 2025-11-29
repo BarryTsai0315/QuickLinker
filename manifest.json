@@ -21,7 +21,7 @@
       "256": "icons/icon256.png",
       "512": "icons/icon512.png"
     },
-    "description": "Intelligent link aggregation tool with rule-based content extraction. Configure custom domain rules to automatically detect and search across multiple websites.",
+    "description": "Smart link aggregator for quick cross-site search. Auto-detect content, check availability, search multiple sites instantly.",
     "content_scripts": [
       {
         "matches": ["*://*/*"],

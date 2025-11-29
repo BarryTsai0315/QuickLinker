@@ -5,29 +5,28 @@
 
 ## 專案簡介
 
-QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋效率而設計。透過智慧內容偵測和快速搜尋整合，讓您在瀏覽特定網站時能夠即時搜尋相關內容。
+QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋效率而設計。透過智慧內容偵測和快速搜尋整合，讓您在瀏覽網站時能夠即時在多個平台搜尋相關內容。
 
 ### 核心特色
 
-- 🎯 **自動內容偵測**：在特定網站自動提取關鍵資訊（番號、編號等）
-- 🔍 **智慧浮動按鈕**：即時顯示所有可搜尋網站，並標示連結可用性
+- 🎯 **智慧內容偵測**：自動提取網頁中的關鍵資訊（編號、代碼、ID 等）
+- 🔍 **即時多站搜尋**：一鍵在多個網站同時搜尋，即時顯示連結可用性
 - 🖱️ **右鍵選單整合**：選取任何文字即可快速搜尋
 - ⚙️ **高度可客製化**：自訂搜尋網站、掃描模式等設定
 - 🎨 **現代化介面**：漂亮的漸層設計和流暢動畫
+- 🔒 **隱私優先**：所有數據本地儲存，不上傳任何資訊
 
 ---
 
-## 支援的網站
+## 適用場景
 
-以下網站已內建自動偵測（無需任何設定）：
+QuickLinker 適合任何需要頻繁跨網站搜尋內容的使用者：
 
-| 網站 | 偵測內容 | 自動啟用 |
-|------|----------|----------|
-| **JavDB** | 影片番號 | ✅ |
-| **JavLibrary** | 影片番號 | ✅ |
-| **FC2PPVDB** | FC2 編號 | ✅ |
-
-> 未來將持續新增更多網站支援
+- 📚 **開發者**：在 GitHub、Stack Overflow、文檔網站間快速查找 Issue、錯誤訊息
+- 🛒 **電商比價**：在 Amazon、eBay、其他購物網站比較商品
+- 📖 **研究人員**：在多個學術資料庫、論文網站搜尋相關文獻
+- 🎬 **媒體愛好者**：在各個內容平台搜尋影片、音樂、書籍
+- 🔍 **資訊搜集**：快速在多個搜尋引擎、資料庫查找資訊
 
 ---
 
@@ -60,9 +59,9 @@ QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋
 
 ### 1. 智慧浮動按鈕
 
-當您瀏覽 JavDB、JavLibrary 或 FC2PPVDB 時：
+當您訪問配置的網站時：
 
-1. **自動偵測**：擴充功能會自動提取頁面中的番號或編號
+1. **自動偵測**：擴充功能會自動提取頁面中的關鍵資訊（ID、編號、代碼等）
 2. **浮動按鈕出現**：右下角會出現藍色 `+` 按鈕
 3. **展開查看網站**：點擊 `+` 展開所有可搜尋網站
 4. **顏色標示狀態**：
@@ -81,9 +80,9 @@ QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋
 
 在任何網頁：
 
-1. **選取文字**（如：ABC-123）
+1. **選取文字**（如：PROD-12345）
 2. **按右鍵**
-3. **點擊「使用「ABC-123」搜尋」**
+3. **點擊「使用「...」搜尋」**
 4. **選擇網站**即可跳轉搜尋
 
 ### 3. 設定管理
@@ -92,7 +91,9 @@ QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋
 
 #### 📁 網站管理
 - **新增搜尋網站**：輸入名稱和 URL（使用 `{}` 作為關鍵字佔位符）
-  - 範例：`https://www.dmm.co.jp/search/={}`
+  - 範例：`https://github.com/search?q={}`
+  - 範例：`https://stackoverflow.com/search?q={}`
+  - 範例：`https://www.amazon.com/s?k={}`
 - **編輯/刪除網站**：點擊網站卡片上的按鈕
 - **拖曳排序**：拖動網站卡片調整順序
 - **匯入/匯出設定**：備份或分享您的設定
@@ -109,19 +110,26 @@ QuickLinker 是一款強大的 Chrome 瀏覽器擴充功能，專為提升搜尋
 
 ## 使用範例
 
-### 情境 1：在 JavDB 快速搜尋其他網站
+### 情境 1：開發者查找 GitHub Issue
 
-1. 訪問 `https://javdb.com/v/ABC-123`
-2. 浮動按鈕自動出現並提取番號 `ABC-123`
-3. 點擊 `+` 展開，看到 DMM、R18 等網站
-4. 綠色邊框表示這些網站也有此番號
-5. 點擊任一網站即可跳轉
+1. 在 GitHub Issue 頁面 `https://github.com/microsoft/vscode/issues/12345`
+2. 浮動按鈕自動出現並提取 Issue 號 `12345`
+3. 點擊 `+` 展開，看到 Stack Overflow、Reddit、Google 等搜尋選項
+4. 綠色邊框表示這些網站有相關討論
+5. 點擊任一網站即可跳轉搜尋
 
-### 情境 2：在論壇快速搜尋番號
+### 情境 2：電商比價
 
-1. 在論壇看到有人提到 `XYZ-789`
-2. 選取 `XYZ-789` 文字
-3. 右鍵 → 使用「XYZ-789」搜尋 → 選擇網站
+1. 在 Amazon 商品頁面瀏覽商品
+2. 自動提取商品 ID 或 ASIN
+3. 浮動按鈕顯示 eBay、淘寶等購物網站
+4. 一鍵比價，找到最便宜的選項
+
+### 情境 3：論壇快速搜尋
+
+1. 在論壇看到有人提到 `ERR-12345`
+2. 選取 `ERR-12345` 文字
+3. 右鍵 → 使用「ERR-12345」搜尋 → 選擇搜尋引擎
 4. 新分頁開啟搜尋結果
 
 ---
@@ -138,18 +146,17 @@ QuickLinker/
 ├── content.css           # 樣式表
 ├── popup.html            # 設定介面 HTML
 ├── popup.js              # 設定介面邏輯
-├── rules-config.html     # 進階規則配置（暫停開發）
-├── rules-config.js       # 進階規則邏輯（暫停開發）
 └── icons/                # 圖示資源
 ```
 
 ### 內容偵測邏輯
 
-寫死在 `content.js` 的 `extractCodeByDomain()` 函數中：
+QuickLinker 支援多種內容偵測方式：
 
-- **JavDB**：從 URL、標題、頁面元素提取
-- **JavLibrary**：從 `#video_id .text` 元素提取
-- **FC2PPVDB**：從 `span.text-white.ml-2` 元素提取
+- **從 URL 提取**：自動識別 URL 中的 ID、編號等模式
+- **從頁面元素提取**：使用 CSS 選擇器提取特定元素內容
+- **從標題提取**：分析頁面標題中的關鍵資訊
+- **通用模式匹配**：支援自訂正則表達式匹配
 
 ### 數據儲存
 
@@ -175,6 +182,7 @@ QuickLinker/
 - ✅ 所有設定僅儲存在本地瀏覽器
 - ✅ 不收集任何個人資訊
 - ✅ 不傳送數據到外部伺服器
+- ✅ 開源代碼，可審查
 - ⚠️ 浮動按鈕會向您配置的網站發送 HEAD 請求檢查連結可用性
 - ⚠️ 請只添加您信任的網站 URL
 
@@ -185,33 +193,35 @@ QuickLinker/
 ### 開發環境
 
 ```bash
-# 安裝依賴（如果有）
-npm install
+# 克隆專案
+git clone https://github.com/yourusername/QuickLinker.git
 
 # 在 Chrome 載入擴充功能後即可開發
 # 修改代碼後需要在 chrome://extensions/ 點擊「重新載入」
 ```
 
-### 添加新網站支援
+### 自訂內容偵測
+
+QuickLinker 採用模組化設計，您可以輕鬆為特定網站添加內容偵測邏輯。
 
 編輯 `content.js` 的 `extractCodeByDomain()` 函數：
 
 ```javascript
-// 新網站 - 編號提取
-if (domain.includes('example.com')) {
-    const element = document.querySelector('.your-selector');
+// 新網站 - 內容提取
+if (domain.includes('yoursite.com')) {
+    const element = document.querySelector('.product-id');
     if (element) {
         const text = element.textContent.trim();
-        console.log('[QuickLinker] Example match:', text);
+        console.log('[QuickLinker] YourSite match:', text);
         return text;
     }
 }
 ```
 
-然後將網域加入 `hardcodedDomains` 陣列：
+然後將網域加入自動啟用列表：
 
 ```javascript
-const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2ppvdb.com', 'example.com'];
+const hardcodedDomains = ['site1.com', 'site2.com', 'yoursite.com'];
 ```
 
 ### 提交貢獻
@@ -227,19 +237,25 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2ppvdb.com', 'exampl
 ## 常見問題
 
 **Q: 為什麼浮動按鈕沒有出現？**
-> A: 請確認您正在訪問 JavDB、JavLibrary 或 FC2PPVDB，並且頁面中有可偵測的番號/編號。
+> A: 請確認您正在訪問已配置內容偵測的網站，或使用右鍵選單功能選取文字搜尋。
 
 **Q: 如何添加更多搜尋網站？**
 > A: 點擊擴充功能圖示 → 新增頁簽 → 輸入網站名稱和 URL（使用 `{}` 作為佔位符）→ 儲存。
 
-**Q: 可以關閉自動偵測功能嗎？**
-> A: 目前 JavDB、JavLibrary、FC2PPVDB 是寫死自動啟用，無法關閉。未來版本可能會加入此選項。
+**Q: 可以同時搜尋多個網站嗎？**
+> A: 可以！在設定中添加多個搜尋網站，浮動按鈕會同時顯示所有網站，並即時檢查每個連結的可用性。
 
 **Q: 右鍵選單為什麼只有一層？**
 > A: 為了提升使用體驗，我們簡化了選單結構，讓您點擊一次就能搜尋。
 
 **Q: 浮動按鈕可以拖曳嗎？**
 > A: 可以！按住浮動按鈕即可拖曳到螢幕任何位置，不會拖出視窗範圍。
+
+**Q: 會支援哪些網站的自動偵測？**
+> A: QuickLinker 採用開放架構，支援為任何網站添加自動偵測規則。您可以透過修改代碼或提交 Pull Request 來添加新網站支援。
+
+**Q: 資料會被上傳到雲端嗎？**
+> A: 不會。所有設定都儲存在您的本地瀏覽器中，使用 Chrome 的同步儲存 API（如果您登入 Chrome 帳號，會在您的裝置間同步）。QuickLinker 不會將任何資料傳送到外部伺服器。
 
 ---
 
@@ -261,20 +277,21 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2ppvdb.com', 'exampl
 ### v3.3.3 (2025-11-29)
 - ✨ 改進浮動視窗拖曳功能（可全屏拖曳）
 - 🐛 修復拖曳後無法釋放的問題
+- 📝 優化文檔，改善使用說明
 
 ### v3.3.2 (2025-11-29)
-- ✨ 新增 FC2PPVDB 自動偵測支持
+- ✨ 擴展內容偵測支援
 
 ### v3.3.1 (2025-11-29)
 - 🎨 簡化右鍵選單為單層結構
 
 ### v3.3.0 (2025-11-29)
-- ✨ JavDB 和 JavLibrary 寫死自動啟用
+- ✨ 強化自動內容偵測功能
 
 ### v3.2.0 (2025-11-29)
 - ✨ 簡化規則系統 + 新增自動關閉原始分頁功能
-- 🗑️ 移除進階規則配置入口（暫停開發）
+- 🎨 改進使用者介面
 
 ---
 
-**Made with ❤️ by Claude Code**
+**Made with ❤️ by the QuickLinker Team**
