@@ -147,6 +147,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return; // No async response needed
   }
 
+  // 來自 content.js 的打開並關閉原始 tab 請求
+  if (message.action === 'openAndClose') {
+    chrome.tabs.create({ url: message.url }, () => {
+      // Close the original tab after opening the new one
+      if (sender.tab && sender.tab.id) {
+        chrome.tabs.remove(sender.tab.id);
+      }
+    });
+    return; // No async response needed
+  }
+
   // 來自 content.js 的智慧掃描請求
   if (message.action === 'checkUrls') {
     (async () => {

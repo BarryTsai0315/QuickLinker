@@ -1,14 +1,17 @@
 // =============================================
-// Extraction Templates Library
+// Extraction Templates Library (DEPRECATED - 已棄用，未來可能重啟)
 // =============================================
 
+// 註解原因：簡化使用者介面，改為在 content.js 中寫死各網站的提取邏輯
+// 保留代碼供未來參考
+/*
 const EXTRACTION_TEMPLATES = {
   'auto': {
     label: '自動偵測（通用）',
     description: '從網址或頁面內容自動判斷',
     icon: '🤖',
     domains: ['*'],
-    extractors: null  // 使用 getCodeLegacy() fallback
+    extractors: null
   },
   'javdb': {
     label: 'JavDB - 影片番號',
@@ -47,6 +50,7 @@ const EXTRACTION_TEMPLATES = {
     ]
   }
 };
+*/
 
 // =============================================
 // Global State
@@ -55,7 +59,6 @@ const EXTRACTION_TEMPLATES = {
 let domainRules = [];
 let availableSites = [];
 let currentEditingRuleId = null;
-let currentExtractionMode = 'template'; // 'auto', 'template', 'custom'
 
 // =============================================
 // Initialization
@@ -81,17 +84,6 @@ function setupEventListeners() {
 
   // Form submission
   document.getElementById('ruleForm').addEventListener('submit', handleFormSubmit);
-
-  // Extraction mode switching
-  document.querySelectorAll('input[name="extractionMode"]').forEach(radio => {
-    radio.addEventListener('change', handleModeChange);
-  });
-
-  // Template selection
-  document.getElementById('templateSelect').addEventListener('change', handleTemplateSelect);
-
-  // Extractor management
-  document.getElementById('addExtractorBtn').addEventListener('click', addExtractorRow);
 
   // Multi-select
   document.getElementById('sitesSelectTrigger').addEventListener('click', toggleSitesDropdown);
@@ -296,38 +288,33 @@ function escapeHtml(text) {
 }
 
 // =============================================
-// Extraction Mode Management
+// Extraction Mode Management (DEPRECATED - 已棄用)
 // =============================================
 
+// 註解原因：簡化為單一模式，提取邏輯寫死在 content.js
+/*
 function handleModeChange(e) {
   const mode = e.target.value;
   currentExtractionMode = mode;
-
-  // Hide all mode-specific sections
   document.getElementById('templateSelection').style.display = 'none';
   document.getElementById('customExtractors').style.display = 'none';
-
-  // Show relevant section
   if (mode === 'template') {
     document.getElementById('templateSelection').style.display = 'block';
     populateTemplateSelect();
   } else if (mode === 'custom') {
     document.getElementById('customExtractors').style.display = 'block';
-    // Ensure at least one extractor row exists
     if (document.getElementById('extractorsContainer').children.length === 0) {
       addExtractorRow();
     }
   }
-
   updatePreview();
 }
 
 function populateTemplateSelect() {
   const select = document.getElementById('templateSelect');
   select.innerHTML = '<option value="">請選擇網站範本...</option>';
-
   Object.entries(EXTRACTION_TEMPLATES).forEach(([key, template]) => {
-    if (key === 'auto') return; // Skip auto mode in template selection
+    if (key === 'auto') return;
     const option = document.createElement('option');
     option.value = key;
     option.textContent = `${template.icon} ${template.label}`;
@@ -338,24 +325,19 @@ function populateTemplateSelect() {
 function handleTemplateSelect(e) {
   const templateKey = e.target.value;
   if (!templateKey) return;
-
   const template = EXTRACTION_TEMPLATES[templateKey];
   if (!template) return;
-
-  // Auto-fill domain (use first domain from template)
   const domainInput = document.getElementById('domainInput');
   if (template.domains && template.domains.length > 0) {
     domainInput.value = template.domains[0];
   }
-
-  // Auto-fill rule name if empty
   const ruleNameInput = document.getElementById('ruleNameInput');
   if (!ruleNameInput.value.trim()) {
     ruleNameInput.value = template.label;
   }
-
   updatePreview();
 }
+*/
 
 // =============================================
 // Modal Management
@@ -368,7 +350,6 @@ function openModal(ruleId = null) {
 
   // Reset form
   document.getElementById('ruleForm').reset();
-  document.getElementById('extractorsContainer').innerHTML = '';
 
   if (ruleId) {
     // Edit mode
@@ -378,31 +359,15 @@ function openModal(ruleId = null) {
       document.getElementById('domainInput').value = rule.domain;
       document.getElementById('ruleNameInput').value = rule.name || '';
 
-      // Determine extraction mode based on extractors
-      if (!rule.extractors || rule.extractors.length === 0) {
-        document.getElementById('modeAuto').checked = true;
-        currentExtractionMode = 'auto';
-      } else {
-        document.getElementById('modeCustom').checked = true;
-        currentExtractionMode = 'custom';
-        // Populate extractors
-        rule.extractors.forEach(ext => addExtractorRow(ext));
-      }
-
       // Set selected sites
       selectedSiteIds = [...rule.sites];
       updateSitesSelectText();
     }
   } else {
-    // Add mode - default to template mode
+    // Add mode
     modalTitle.textContent = '新增規則';
-    document.getElementById('modeTemplate').checked = true;
-    currentExtractionMode = 'template';
     selectedSiteIds = [];
   }
-
-  // Trigger mode change to show/hide appropriate sections
-  handleModeChange({ target: { value: currentExtractionMode } });
 
   populateSitesOptions();
   updatePreview();
@@ -590,29 +555,6 @@ async function handleFormSubmit(e) {
   const domain = document.getElementById('domainInput').value.trim();
   const name = document.getElementById('ruleNameInput').value.trim();
 
-  // Get extractors based on selected mode
-  let extractors = [];
-  if (currentExtractionMode === 'auto') {
-    // Auto mode: no extractors (use fallback in content.js)
-    extractors = [];
-  } else if (currentExtractionMode === 'template') {
-    // Template mode: get extractors from selected template
-    const templateKey = document.getElementById('templateSelect').value;
-    if (!templateKey) {
-      alert('請選擇一個範本');
-      return;
-    }
-    const template = EXTRACTION_TEMPLATES[templateKey];
-    extractors = template.extractors || [];
-  } else if (currentExtractionMode === 'custom') {
-    // Custom mode: get extractors from form
-    extractors = getExtractorsFromForm();
-    if (extractors.length === 0) {
-      alert('請至少新增一個提取規則');
-      return;
-    }
-  }
-
   // Validation
   if (!domain) {
     alert('請輸入觸發網域');
@@ -624,12 +566,12 @@ async function handleFormSubmit(e) {
     return;
   }
 
+  // 規則簡化：不再儲存 extractors，提取邏輯寫死在 content.js 中
   const rule = {
     id: currentEditingRuleId || generateUniqueId(),
     domain,
     name: name || undefined,
     enabled: true,
-    extractors,
     sites: selectedSiteIds
   };
 

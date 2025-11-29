@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', saveScanMode);
     });
 
+    // Close original tab setting
+    document.getElementById('closeOriginalTab').addEventListener('change', saveCloseOriginalTabSetting);
+
     // Event delegation for site card buttons (only add once)
     document.getElementById('sitesContainer').addEventListener('click', (e) => {
         const editBtn = e.target.closest('.edit-site-btn');
@@ -76,12 +79,14 @@ function showTab(tabName) {
 }
 
 async function loadSettingsAndRender() {
-    const result = await chrome.storage.sync.get(['settings', 'scanMode']);
+    const result = await chrome.storage.sync.get(['settings', 'scanMode', 'closeOriginalTab']);
     currentSettings = result.settings || [];
     const scanMode = result.scanMode || 'bestMatch'; // Default to bestMatch
+    const closeOriginalTab = result.closeOriginalTab !== undefined ? result.closeOriginalTab : false; // Default to false
 
     renderSites(currentSettings);
     document.getElementById(scanMode + 'Mode').checked = true; // Set scan mode radio button
+    document.getElementById('closeOriginalTab').checked = closeOriginalTab; // Set close original tab checkbox
 
     // Initialize drag-and-drop for sites
     initSortable('sitesContainer', (newOrder) => {
@@ -319,6 +324,12 @@ async function saveScanMode() {
     const selectedMode = document.querySelector('input[name="scanMode"]:checked').value;
     await chrome.storage.sync.set({ scanMode: selectedMode });
     showFeedback('掃描模式已儲存！');
+}
+
+async function saveCloseOriginalTabSetting() {
+    const closeOriginalTab = document.getElementById('closeOriginalTab').checked;
+    await chrome.storage.sync.set({ closeOriginalTab: closeOriginalTab });
+    showFeedback('分頁管理設定已儲存！');
 }
 
 function exportSettings() {

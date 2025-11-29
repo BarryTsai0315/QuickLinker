@@ -38,6 +38,72 @@ async function loadDomainRules() {
     return cachedDomainRules;
 }
 
+/**
+ * 根據網域提取內容（寫死邏輯，針對常見網站優化）
+ * @param {string} domain - 當前網域
+ * @returns {string|null} 提取的內容
+ */
+function extractCodeByDomain(domain) {
+    console.log('[QuickLinker] Extracting code for domain:', domain);
+
+    // JavDB - 影片番號提取
+    if (domain.includes('javdb.com')) {
+        // 方法1: 從URL提取 /v/ABC-123
+        const urlMatch = location.pathname.match(/\/v\/([A-Z0-9]+-\d+)/i);
+        if (urlMatch && urlMatch[1]) {
+            console.log('[QuickLinker] JavDB URL match:', urlMatch[1]);
+            return urlMatch[1];
+        }
+
+        // 方法2: 從標題提取
+        const titleMatch = document.title.match(/([A-Z0-9]+-\d+)/i);
+        if (titleMatch && titleMatch[1]) {
+            console.log('[QuickLinker] JavDB title match:', titleMatch[1]);
+            return titleMatch[1];
+        }
+
+        // 方法3: 從頁面元素提取
+        const element = document.querySelector('.video-meta-panel .value');
+        if (element) {
+            const text = element.textContent.trim();
+            console.log('[QuickLinker] JavDB element match:', text);
+            return text;
+        }
+    }
+
+    // JavLibrary - 影片番號提取
+    if (domain.includes('javlibrary.com')) {
+        const element = document.querySelector('#video_id .text');
+        if (element) {
+            const text = element.textContent.trim();
+            console.log('[QuickLinker] JavLibrary match:', text);
+            return text;
+        }
+    }
+
+    // GitHub - Issue 編號提取
+    if (domain.includes('github.com')) {
+        const urlMatch = location.pathname.match(/\/issues\/(\d+)/);
+        if (urlMatch && urlMatch[1]) {
+            console.log('[QuickLinker] GitHub issue match:', urlMatch[1]);
+            return urlMatch[1];
+        }
+    }
+
+    // Amazon - 產品 ASIN 提取
+    if (domain.includes('amazon.')) {
+        const urlMatch = location.pathname.match(/\/dp\/([A-Z0-9]{10})/);
+        if (urlMatch && urlMatch[1]) {
+            console.log('[QuickLinker] Amazon ASIN match:', urlMatch[1]);
+            return urlMatch[1];
+        }
+    }
+
+    // 其他網站：使用通用邏輯
+    console.log('[QuickLinker] No specific extractor, trying generic methods');
+    return null;
+}
+
 async function extractCodeByRules() {
     const domainRules = await loadDomainRules();
     const currentDomain = location.hostname;
@@ -56,76 +122,22 @@ async function extractCodeByRules() {
 
     console.log('[QuickLinker] Matched rule:', matchedRule);
 
-    // 如果沒有提取規則（auto 模式），返回 null 使用 fallback
-    if (!matchedRule.extractors || matchedRule.extractors.length === 0) {
-        console.log('[QuickLinker] No extractors defined, using fallback');
+    // 使用寫死的提取邏輯
+    const extractedCode = extractCodeByDomain(currentDomain);
+
+    if (extractedCode) {
         return {
-            code: null,  // 將由 getCodeLegacy() 處理
+            code: extractedCode,
             sites: matchedRule.sites
         };
     }
 
-    // 按順序執行提取規則
-    for (const extractor of matchedRule.extractors) {
-        let result = null;
-
-        try {
-            console.log('[QuickLinker] Testing extractor:', extractor);
-
-            switch (extractor.type) {
-                case 'selector':
-                    const element = document.querySelector(extractor.pattern);
-                    if (element) {
-                        switch (extractor.transform) {
-                            case 'text':
-                                result = element.textContent.trim();
-                                break;
-                            case 'href':
-                                result = element.href;
-                                break;
-                            default:
-                                // data-* 或其他屬性
-                                result = element.getAttribute(extractor.transform);
-                        }
-                    }
-                    break;
-
-                case 'regex':
-                    const textContent = document.body.textContent;
-                    const match = textContent.match(new RegExp(extractor.pattern));
-                    if (match) {
-                        // transform 格式: match_1, match_2 等
-                        const matchIndex = parseInt(extractor.transform.replace('match_', '')) || 0;
-                        result = match[matchIndex];
-                    }
-                    break;
-
-                case 'clipboard':
-                    const clipboardElement = document.querySelector('.copy-to-clipboard');
-                    if (clipboardElement) {
-                        result = clipboardElement.getAttribute('data-clipboard-text');
-                    }
-                    break;
-
-                case 'url':
-                    result = location.href;
-                    break;
-            }
-
-            if (result) {
-                console.log('[QuickLinker] Extraction successful:', result);
-                return {
-                    code: result,
-                    sites: matchedRule.sites  // 只檢查規則指定的網站
-                };
-            }
-        } catch (error) {
-            console.error('[QuickLinker] Extractor error:', error);
-        }
-    }
-
-    console.log('[QuickLinker] All extractors failed');
-    return null;
+    // 如果專門的提取邏輯失敗，使用 legacy fallback
+    console.log('[QuickLinker] Domain-specific extraction failed, using fallback');
+    return {
+        code: null,  // 將由 getCodeLegacy() 處理
+        sites: matchedRule.sites
+    };
 }
 
 // =============================================
@@ -317,6 +329,21 @@ function updateButtonStates(results) {
                 subButton.classList.add('status-available');
                 subButton.href = result.finalUrl; // Use the final URL after redirects
                 subButton.target = '_blank';
+
+                // Add click handler for close original tab feature
+                subButton.addEventListener('click', async (e) => {
+                    const closeOriginalTabSetting = await chrome.storage.sync.get(['closeOriginalTab']);
+                    if (closeOriginalTabSetting.closeOriginalTab) {
+                        e.preventDefault(); // Prevent default link behavior
+
+                        // Open in new tab
+                        chrome.runtime.sendMessage({
+                            action: 'openAndClose',
+                            url: result.finalUrl
+                        });
+                    }
+                    // If closeOriginalTab is false, let default link behavior work (target="_blank")
+                });
                 break;
             case 'unavailable':
                 subButton.classList.add('status-unavailable');
