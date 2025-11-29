@@ -391,6 +391,7 @@ style.textContent = `
   .ql-floating-container {
     position: fixed; z-index: 9999; right: 20px; bottom: 20px;
     display: flex; flex-direction: column-reverse; align-items: center;
+    cursor: move; /* 提示可拖曳 */
   }
   .ql-floating-button {
     width: 40px; height: 40px; border-radius: 50%;
@@ -402,7 +403,7 @@ style.textContent = `
   }
   .ql-main-button { background-color: #007bff; color: white; font-size: 28px; }
   .ql-sub-buttons { display: none; flex-direction: column; margin-bottom: 10px; }
-  .ql-sub-button { background-color: #f8f9fa; margin-bottom: 10px; }
+  .ql-sub-button { background-color: #f8f9fa; margin-bottom: 10px; cursor: pointer; }
   .ql-sub-button:hover { transform: scale(1.15); }
 
   /* Status Styles */
@@ -485,24 +486,49 @@ document.addEventListener('mousedown', (e) => {
     const container = document.querySelector('.ql-floating-container');
     if (!container || !container.contains(e.target)) return;
 
-    let shiftX = e.clientX - container.getBoundingClientRect().left;
-    let shiftY = e.clientY - container.getBoundingClientRect().top;
+    // 避免點擊子按鈕時觸發拖曳（只有主按鈕或容器可拖曳）
+    if (e.target.classList.contains('ql-sub-button') || e.target.closest('.ql-sub-button')) {
+        return;
+    }
 
-    function moveAt(pageX, pageY) {
-        container.style.left = pageX - shiftX + 'px';
-        container.style.top = pageY - shiftY + 'px';
+    e.preventDefault(); // 防止選取文字
+
+    // 開始拖曳時移除 right 和 bottom 定位
+    const rect = container.getBoundingClientRect();
+    container.style.right = 'auto';
+    container.style.bottom = 'auto';
+    container.style.left = rect.left + 'px';
+    container.style.top = rect.top + 'px';
+
+    let shiftX = e.clientX - rect.left;
+    let shiftY = e.clientY - rect.top;
+
+    function moveAt(clientX, clientY) {
+        let newLeft = clientX - shiftX;
+        let newTop = clientY - shiftY;
+
+        // 限制在視窗範圍內
+        const maxX = window.innerWidth - container.offsetWidth;
+        const maxY = window.innerHeight - container.offsetHeight;
+
+        newLeft = Math.max(0, Math.min(newLeft, maxX));
+        newTop = Math.max(0, Math.min(newTop, maxY));
+
+        container.style.left = newLeft + 'px';
+        container.style.top = newTop + 'px';
     }
 
     function onMouseMove(event) {
-        moveAt(event.pageX, event.pageY);
+        moveAt(event.clientX, event.clientY);
+    }
+
+    function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
     }
 
     document.addEventListener('mousemove', onMouseMove);
-
-    container.onmouseup = function() {
-        document.removeEventListener('mousemove', onMouseMove);
-        container.onmouseup = null;
-    };
+    document.addEventListener('mouseup', onMouseUp);
 
     container.ondragstart = function() {
         return false;
