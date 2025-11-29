@@ -166,7 +166,23 @@ function getCodeLegacy() {
 
 // 統一入口函數（新系統）
 async function getCode() {
-    // 優先使用規則提取
+    const currentDomain = location.hostname;
+
+    // 【寫死邏輯】：JavDB 和 JavLibrary 自動啟用，不需要規則配置
+    const hardcodedDomains = ['javdb.com', 'javlibrary.com'];
+    const isHardcodedDomain = hardcodedDomains.some(domain => currentDomain.includes(domain));
+
+    if (isHardcodedDomain) {
+        console.log('[QuickLinker] Hardcoded domain detected:', currentDomain);
+        const extractedCode = extractCodeByDomain(currentDomain);
+        if (extractedCode) {
+            console.log('[QuickLinker] Hardcoded extraction successful:', extractedCode);
+            return { code: extractedCode, sites: null }; // sites: null = 搜尋所有網站
+        }
+        console.log('[QuickLinker] Hardcoded extraction failed');
+    }
+
+    // 優先使用規則提取（其他網站）
     const ruleResult = await extractCodeByRules();
     if (ruleResult) {
         // 如果規則匹配但 code 為 null（auto 模式），使用 legacy fallback
