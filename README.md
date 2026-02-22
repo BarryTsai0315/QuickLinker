@@ -1,6 +1,6 @@
 # QuickLinker - 智慧連結聚合瀏覽器擴充功能
 
-![Version](https://img.shields.io/badge/version-3.3.3-blue)
+![Version](https://img.shields.io/badge/version-3.3.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 專案簡介
@@ -273,6 +273,10 @@ const hardcodedDomains = ['site1.com', 'site2.com', 'yoursite.com'];
 ---
 
 ## 更新日誌
+
+### v3.3.4 (2026-02-22)
+- 🐛 修復浮動按鈕展開方向問題：自動偵測按鈕位於視窗上/下方，動態決定往上或往下展開，避免子按鈕被裁切
+- 🎨 子按鈕改為絕對定位，展開時不再影響主按鈕位置
 
 ### v3.3.3 (2025-11-29)
 - ✨ 改進浮動視窗拖曳功能（可全屏拖曳）

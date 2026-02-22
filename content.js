@@ -317,7 +317,30 @@ async function createFloatingButton(extractResult) {
     let isExpanded = false;
     mainButton.addEventListener('click', () => {
         isExpanded = !isExpanded;
-        subButtonsContainer.style.display = isExpanded ? 'flex' : 'none';
+
+        if (isExpanded) {
+            // 計算主按鈕距離視窗上下的可用空間
+            const containerRect = container.getBoundingClientRect();
+            const spaceAbove = containerRect.top;
+            const spaceBelow = window.innerHeight - containerRect.bottom;
+
+            subButtonsContainer.style.display = 'flex';
+
+            if (spaceAbove >= spaceBelow) {
+                // 上方空間較多 → 往上展開
+                subButtonsContainer.style.bottom = 'calc(100% + 10px)';
+                subButtonsContainer.style.top = 'auto';
+                subButtonsContainer.style.flexDirection = 'column-reverse'; // 第一個按鈕最靠近主按鈕
+            } else {
+                // 下方空間較多 → 往下展開
+                subButtonsContainer.style.top = 'calc(100% + 10px)';
+                subButtonsContainer.style.bottom = 'auto';
+                subButtonsContainer.style.flexDirection = 'column'; // 第一個按鈕最靠近主按鈕
+            }
+        } else {
+            subButtonsContainer.style.display = 'none';
+        }
+
         mainButton.style.transform = isExpanded ? 'rotate(45deg)' : 'rotate(0deg)';
     });
 
@@ -390,7 +413,7 @@ const style = document.createElement('style');
 style.textContent = `
   .ql-floating-container {
     position: fixed; z-index: 9999; right: 20px; bottom: 20px;
-    display: flex; flex-direction: column-reverse; align-items: center;
+    display: flex; flex-direction: column; align-items: center;
     cursor: move; /* 提示可拖曳 */
   }
   .ql-floating-button {
@@ -402,8 +425,12 @@ style.textContent = `
     border: 3px solid transparent;
   }
   .ql-main-button { background-color: #007bff; color: white; font-size: 28px; }
-  .ql-sub-buttons { display: none; flex-direction: column; margin-bottom: 10px; }
-  .ql-sub-button { background-color: #f8f9fa; margin-bottom: 10px; cursor: pointer; }
+  .ql-sub-buttons {
+    display: none; flex-direction: column; align-items: center;
+    position: absolute; /* 脫離 flex 流，不影響主按鈕位置 */
+    gap: 10px;
+  }
+  .ql-sub-button { background-color: #f8f9fa; cursor: pointer; }
   .ql-sub-button:hover { transform: scale(1.15); }
 
   /* Status Styles */
