@@ -57,9 +57,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // =============================================
 
 chrome.runtime.onInstalled.addListener((details) => {
-  // 偵測版本更新，設定通知旗標
+  const currentVersion = chrome.runtime.getManifest().version;
+
   if (details.reason === 'update') {
-    const currentVersion = chrome.runtime.getManifest().version;
     console.log(`[QuickLinker] 擴充功能已更新: ${details.previousVersion} → ${currentVersion}`);
     chrome.storage.sync.set({
       showUpdateNotification: true,
@@ -69,6 +69,13 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
   } else if (details.reason === 'install') {
     console.log('[QuickLinker] 擴充功能已安裝');
+    // 首次安裝也顯示功能介紹
+    chrome.storage.sync.set({
+      showUpdateNotification: true,
+      updateFromVersion: null
+    });
+    chrome.action.setBadgeText({ text: 'NEW' });
+    chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
   }
 
   chrome.storage.sync.get(['settings'], (result) => {
