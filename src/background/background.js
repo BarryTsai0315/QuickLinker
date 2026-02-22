@@ -56,7 +56,21 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // 擴充功能生命週期事件 (Extension Lifecycle Events)
 // =============================================
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  // 偵測版本更新，設定通知旗標
+  if (details.reason === 'update') {
+    const currentVersion = chrome.runtime.getManifest().version;
+    console.log(`[QuickLinker] 擴充功能已更新: ${details.previousVersion} → ${currentVersion}`);
+    chrome.storage.sync.set({
+      showUpdateNotification: true,
+      updateFromVersion: details.previousVersion
+    });
+    chrome.action.setBadgeText({ text: 'NEW' });
+    chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
+  } else if (details.reason === 'install') {
+    console.log('[QuickLinker] 擴充功能已安裝');
+  }
+
   chrome.storage.sync.get(['settings'], (result) => {
     let settings = result.settings || [];
     let updated = false;

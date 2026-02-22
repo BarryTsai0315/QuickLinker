@@ -1,3 +1,45 @@
+// =============================================
+// 版本更新通知 (Version Update Notification)
+// =============================================
+
+const VERSION_FEATURES = {
+  '3.4.0': [
+    '✨ 浮動按鈕位置記憶：拖曳後自動儲存，重開頁面恢復上次位置',
+    '🚀 fullScan 模式平行化，速度大幅提升',
+    '⚡ MutationObserver 加入 debounce，偵測到番號後自動停止監聽',
+    '🔄 新增 URL 變化偵測，支援 SPA 頁面切換',
+    '🛡️ 按鈕位置邊界保護：視窗縮小時自動 clamp 到有效範圍'
+  ],
+  '3.3.4': [
+    '🐛 修復浮動按鈕展開方向問題，避免子按鈕被裁切',
+    '🎨 子按鈕改為絕對定位，展開時不影響主按鈕位置'
+  ],
+  '3.3.3': [
+    '✨ 改進浮動視窗拖曳功能（可全屏拖曳）',
+    '🐛 修復拖曳後無法釋放的問題'
+  ]
+};
+
+function checkAndShowUpdateNotification() {
+  chrome.storage.sync.get(['showUpdateNotification', 'updateFromVersion'], (result) => {
+    if (!result.showUpdateNotification) return;
+
+    const currentVersion = chrome.runtime.getManifest().version;
+    const versionEl = document.getElementById('updateVersion');
+    const featuresList = document.getElementById('updateFeatures');
+    const notification = document.getElementById('updateNotification');
+
+    if (!versionEl || !featuresList || !notification) return;
+
+    versionEl.textContent = `v${currentVersion}`;
+
+    const features = VERSION_FEATURES[currentVersion] || ['🎉 效能改進與錯誤修復'];
+    featuresList.innerHTML = features.map(f => `<li>${f}</li>`).join('');
+
+    notification.classList.remove('hidden');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
@@ -21,6 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close original tab setting
     document.getElementById('closeOriginalTab').addEventListener('change', saveCloseOriginalTabSetting);
 
+    // 更新通知：關閉按鈕
+    document.getElementById('closeUpdateBtn').addEventListener('click', () => {
+        document.getElementById('updateNotification').classList.add('hidden');
+        chrome.storage.sync.set({ showUpdateNotification: false });
+        chrome.action.setBadgeText({ text: '' });
+    });
+
     // Event delegation for site card buttons (only add once)
     document.getElementById('sitesContainer').addEventListener('click', (e) => {
         const editBtn = e.target.closest('.edit-site-btn');
@@ -37,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     loadSettingsAndRender();
+    checkAndShowUpdateNotification();
 });
 
 let currentSettings = []; // Global variable to hold current settings
