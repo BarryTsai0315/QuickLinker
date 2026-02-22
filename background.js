@@ -148,48 +148,63 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'checkUrls') {
     (async () => {
       const { settings, scanMode } = await chrome.storage.sync.get(['settings', 'scanMode']);
-      const code = message.code; // Directly receive the code
-      const limitedSites = message.limitedSites; // 新增：規則指定的網站清單
+      const code = message.code;
+      const limitedSites = message.limitedSites;
 
       console.log('[QuickLinker Background] Checking URLs for code:', code);
       console.log('[QuickLinker Background] Limited sites:', limitedSites);
 
-      const results = [];
-
+      // 建立待檢查清單
+      const tasks = [];
       for (const site of settings) {
         for (const version of site.versions) {
           const siteVersionId = `${site.id}_${version.id}`;
-
-          // 如果有限定網站清單，只檢查清單內的網站
           if (limitedSites && !limitedSites.includes(siteVersionId)) {
-            console.log('[QuickLinker Background] Skipping site:', siteVersionId);
             continue;
           }
-
           const fullUrl = version.baseUrl.replace('{}', code);
-          const urlInfo = { id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` };
+          tasks.push({ id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` });
+        }
+      }
 
-          console.log('[QuickLinker Background] Checking URL:', fullUrl);
-
+      if (scanMode === 'bestMatch') {
+        // bestMatch：循序檢查，找到第一個可用即停止
+        const results = [];
+        for (const urlInfo of tasks) {
+          console.log('[QuickLinker Background] Checking URL:', urlInfo.url);
           try {
-            const response = await fetch(fullUrl, { method: 'HEAD', cache: 'no-cache' });
+            const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
             if (response.status === 404) {
               results.push({ ...urlInfo, status: 'unavailable' });
             } else {
               results.push({ ...urlInfo, status: 'available', finalUrl: response.url });
-              if (scanMode === 'bestMatch') {
-                console.log('[QuickLinker Background] Best match found, sending response');
-                sendResponse({ results });
-                return; // Stop and send response immediately for bestMatch
-              }
+              console.log('[QuickLinker Background] Best match found, sending response');
+              sendResponse({ results });
+              return;
             }
           } catch (error) {
             results.push({ ...urlInfo, status: 'error', error: error.message });
           }
         }
+        sendResponse({ results });
+      } else {
+        // fullScan：平行檢查所有網站，大幅加速
+        console.log('[QuickLinker Background] Full scan: checking', tasks.length, 'URLs in parallel');
+        const results = await Promise.all(tasks.map(async (urlInfo) => {
+          try {
+            const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
+            if (response.status === 404) {
+              return { ...urlInfo, status: 'unavailable' };
+            } else {
+              return { ...urlInfo, status: 'available', finalUrl: response.url };
+            }
+          } catch (error) {
+            return { ...urlInfo, status: 'error', error: error.message };
+          }
+        }));
+        console.log('[QuickLinker Background] Sending final results:', results.length, 'items');
+        sendResponse({ results });
       }
-      console.log('[QuickLinker Background] Sending final results:', results.length, 'items');
-      sendResponse({ results });
     })();
     return true; // Keep message channel open for async response
   }

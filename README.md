@@ -1,6 +1,6 @@
 # QuickLinker - 智慧連結聚合瀏覽器擴充功能
 
-![Version](https://img.shields.io/badge/version-3.3.4-blue)
+![Version](https://img.shields.io/badge/version-3.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 專案簡介
@@ -273,6 +273,13 @@ const hardcodedDomains = ['site1.com', 'site2.com', 'yoursite.com'];
 ---
 
 ## 更新日誌
+
+### v3.4.0 (2026-02-22)
+- ✨ 新增浮動按鈕位置記憶功能：拖曳後自動儲存位置，重新開啟頁面時自動還原
+- 🚀 fullScan 模式平行化檢查所有網站，速度大幅提升
+- ⚡ MutationObserver 加入 debounce（300ms），偵測到番號後自動停止監聽，節省資源
+- 🔄 新增 URL 變化偵測，支援 SPA 頁面切換自動重新提取
+- 🛡️ 按鈕位置邊界保護：視窗縮小時自動 clamp 到有效範圍內
 
 ### v3.3.4 (2026-02-22)
 - 🐛 修復浮動按鈕展開方向問題：自動偵測按鈕位於視窗上/下方，動態決定往上或往下展開，避免子按鈕被裁切
