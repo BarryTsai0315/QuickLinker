@@ -141,13 +141,28 @@ QuickLinker 適合任何需要頻繁跨網站搜尋內容的使用者：
 
 ```
 QuickLinker/
-├── manifest.json          # 擴充功能配置
-├── background.js          # Service Worker（右鍵選單、訊息處理）
-├── content.js            # 內容腳本（浮動按鈕、內容偵測）
-├── content.css           # 樣式表
-├── popup.html            # 設定介面 HTML
-├── popup.js              # 設定介面邏輯
-└── icons/                # 圖示資源
+├── manifest.json               # 擴充功能配置（Manifest V3）
+├── README.md
+├── CLAUDE.md
+├── LICENSE
+├── icons/                      # 圖示資源（16/64/128/256/512px）
+├── src/
+│   ├── background/
+│   │   └── background.js       # Service Worker（右鍵選單、訊息處理）
+│   ├── content/
+│   │   ├── content.js          # 內容腳本（浮動按鈕、內容偵測）
+│   │   └── content.css         # 樣式表
+│   └── popup/
+│       ├── popup.html          # 設定介面 HTML
+│       └── popup.js            # 設定介面邏輯
+├── paused/                     # 開發暫停中的功能
+│   ├── rules-config.html
+│   └── rules-config.js
+└── docs/                       # 文件與展示頁
+    ├── USER_GUIDE.md
+    ├── STORE_DESC.md
+    ├── FILE_STRUCTURE.md
+    └── index.html
 ```
 
 ### 內容偵測邏輯

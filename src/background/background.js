@@ -52,7 +52,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-
 // =============================================
 // 擴充功能生命週期事件 (Extension Lifecycle Events)
 // =============================================
@@ -88,7 +87,7 @@ chrome.runtime.onInstalled.addListener(() => {
         id: generateUniqueId(),
         name: 'Missav',
         versions: [
-          { id: generateUniqueId(), name: '預設', baseUrl: 'https://missav.ws/ja/{}' }
+          { id: generateUniqueId(), name: '預設', baseUrl: 'https://missav.ai/ja/{}' }
         ]
       },
       {
@@ -129,7 +128,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     createContextMenu(changes.settings.newValue);
   }
 });
-
 
 // =============================================
 // 訊息監聽 (Message Listener)
