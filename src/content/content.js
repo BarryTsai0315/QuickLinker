@@ -189,7 +189,9 @@ async function getCode() {
             console.log('[QuickLinker] Hardcoded extraction successful:', extractedCode);
             return { code: extractedCode, sites: null }; // sites: null = 搜尋所有網站
         }
-        console.log('[QuickLinker] Hardcoded extraction failed');
+        // hardcoded 網站提取失敗時，直接結束（不 fallback 到 legacy，避免抓到頁面上無關元素）
+        console.log('[QuickLinker] Hardcoded extraction failed, skipping fallback');
+        return null;
     }
 
     // 優先使用規則提取（其他網站）
