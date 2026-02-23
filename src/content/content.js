@@ -231,17 +231,63 @@ function extractCodeFromText(text) {
     return null;
 }
 
-const observer = new MutationObserver(async () => {
-    const extractResult = await getCode();
-    const container = document.querySelector('.ql-floating-container');
-    if (extractResult && !container) {
-        createFloatingButton(extractResult);
-    } else if (!extractResult && container) {
-        container.remove();
-    }
+// =============================================
+// Debounced MutationObserver + URL Change Detection
+// =============================================
+
+let _observerDebounceTimer = null;
+let _lastCheckedUrl = location.href;
+let _codeFound = false;
+
+const observer = new MutationObserver(() => {
+    if (_codeFound) return; // 已偵測到番號，不再觸發
+
+    clearTimeout(_observerDebounceTimer);
+    _observerDebounceTimer = setTimeout(async () => {
+        const extractResult = await getCode();
+        const container = document.querySelector('.ql-floating-container');
+        if (extractResult && !container) {
+            _codeFound = true;
+            observer.disconnect(); // 偵測到後停止監聽 DOM，節省資源
+            console.log('[QuickLinker] Code found via observer, disconnecting');
+            createFloatingButton(extractResult);
+        } else if (!extractResult && container) {
+            container.remove();
+        }
+    }, 300); // 300ms debounce
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+
+// 監聽 URL 變化（處理 SPA 頁面切換或 history pushState）
+setInterval(() => {
+    if (location.href !== _lastCheckedUrl) {
+        console.log('[QuickLinker] URL changed:', _lastCheckedUrl, '->', location.href);
+        _lastCheckedUrl = location.href;
+        _codeFound = false;
+
+        // 移除舊容器
+        const container = document.querySelector('.ql-floating-container');
+        if (container) container.remove();
+
+        // 清除規則快取
+        rulesLoaded = false;
+        cachedDomainRules = [];
+
+        // 重新啟動 observer
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // 立即嘗試提取
+        (async () => {
+            const extractResult = await getCode();
+            if (extractResult) {
+                _codeFound = true;
+                observer.disconnect();
+                createFloatingButton(extractResult);
+            }
+        })();
+    }
+}, 1000);
 
 // =============================================
 // Floating Button Creation & Smart Scan
@@ -314,10 +360,53 @@ async function createFloatingButton(extractResult) {
     container.appendChild(mainButton);
     document.body.appendChild(container);
 
+    // --- O4: 從 localStorage 還原按鈕位置 ---
+    const savedPos = localStorage.getItem('ql_button_pos');
+    if (savedPos) {
+        try {
+            const pos = JSON.parse(savedPos);
+            // O3: clamp 到視窗範圍內，避免位置超出邊界
+            const maxX = window.innerWidth - container.offsetWidth;
+            const maxY = window.innerHeight - container.offsetHeight;
+            const safeLeft = Math.max(0, Math.min(pos.left, maxX));
+            const safeTop = Math.max(0, Math.min(pos.top, maxY));
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+            container.style.left = safeLeft + 'px';
+            container.style.top = safeTop + 'px';
+            console.log('[QuickLinker] Restored button position:', safeLeft, safeTop);
+        } catch (e) {
+            console.error('[QuickLinker] Failed to restore button position:', e);
+        }
+    }
+
     let isExpanded = false;
     mainButton.addEventListener('click', () => {
         isExpanded = !isExpanded;
-        subButtonsContainer.style.display = isExpanded ? 'flex' : 'none';
+
+        if (isExpanded) {
+            // 計算主按鈕距離視窗上下的可用空間
+            const containerRect = container.getBoundingClientRect();
+            const spaceAbove = containerRect.top;
+            const spaceBelow = window.innerHeight - containerRect.bottom;
+
+            subButtonsContainer.style.display = 'flex';
+
+            if (spaceAbove >= spaceBelow) {
+                // 上方空間較多 → 往上展開
+                subButtonsContainer.style.bottom = 'calc(100% + 10px)';
+                subButtonsContainer.style.top = 'auto';
+                subButtonsContainer.style.flexDirection = 'column-reverse'; // 第一個按鈕最靠近主按鈕
+            } else {
+                // 下方空間較多 → 往下展開
+                subButtonsContainer.style.top = 'calc(100% + 10px)';
+                subButtonsContainer.style.bottom = 'auto';
+                subButtonsContainer.style.flexDirection = 'column'; // 第一個按鈕最靠近主按鈕
+            }
+        } else {
+            subButtonsContainer.style.display = 'none';
+        }
+
         mainButton.style.transform = isExpanded ? 'rotate(45deg)' : 'rotate(0deg)';
     });
 
@@ -390,7 +479,7 @@ const style = document.createElement('style');
 style.textContent = `
   .ql-floating-container {
     position: fixed; z-index: 9999; right: 20px; bottom: 20px;
-    display: flex; flex-direction: column-reverse; align-items: center;
+    display: flex; flex-direction: column; align-items: center;
     cursor: move; /* 提示可拖曳 */
   }
   .ql-floating-button {
@@ -402,8 +491,12 @@ style.textContent = `
     border: 3px solid transparent;
   }
   .ql-main-button { background-color: #007bff; color: white; font-size: 28px; }
-  .ql-sub-buttons { display: none; flex-direction: column; margin-bottom: 10px; }
-  .ql-sub-button { background-color: #f8f9fa; margin-bottom: 10px; cursor: pointer; }
+  .ql-sub-buttons {
+    display: none; flex-direction: column; align-items: center;
+    position: absolute; /* 脫離 flex 流，不影響主按鈕位置 */
+    gap: 10px;
+  }
+  .ql-sub-button { background-color: #f8f9fa; cursor: pointer; }
   .ql-sub-button:hover { transform: scale(1.15); }
 
   /* Status Styles */
@@ -525,6 +618,14 @@ document.addEventListener('mousedown', (e) => {
     function onMouseUp() {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
+
+        // O4: 拖曳結束後儲存按鈕位置
+        const finalRect = container.getBoundingClientRect();
+        localStorage.setItem('ql_button_pos', JSON.stringify({
+            left: finalRect.left,
+            top: finalRect.top
+        }));
+        console.log('[QuickLinker] Saved button position:', finalRect.left, finalRect.top);
     }
 
     document.addEventListener('mousemove', onMouseMove);

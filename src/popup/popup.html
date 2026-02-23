@@ -490,6 +490,76 @@
     .help-text i {
       font-size: 12px;
     }
+
+    /* 更新通知 */
+    .update-notification {
+      margin: 12px 12px 0;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+      animation: slideDown 0.35s ease-out;
+      position: relative;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .update-notification .update-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .update-notification .update-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .update-notification .update-version {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .update-notification .update-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .update-notification .update-close:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
+    .update-notification ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      line-height: 1.8;
+      opacity: 0.95;
+    }
+    .update-notification li {
+      margin: 0;
+    }
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -497,6 +567,15 @@
   <div class="header">
     <h1><i class="fi fi-rr-link-alt"></i> QuickLinker</h1>
     <p>智慧連結聚合工具</p>
+  </div>
+
+  <!-- 更新通知 -->
+  <div id="updateNotification" class="update-notification hidden">
+    <div class="update-header">
+      <span class="update-title">🎉 已更新至 <span class="update-version" id="updateVersion"></span></span>
+      <button class="update-close" id="closeUpdateBtn" title="關閉">×</button>
+    </div>
+    <ul id="updateFeatures"></ul>
   </div>
 
   <!-- Tabs -->

@@ -1,6 +1,6 @@
 # QuickLinker - 智慧連結聚合瀏覽器擴充功能
 
-![Version](https://img.shields.io/badge/version-3.3.3-blue)
+![Version](https://img.shields.io/badge/version-3.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 專案簡介
@@ -73,8 +73,9 @@ QuickLinker 適合任何需要頻繁跨網站搜尋內容的使用者：
 
 **拖曳功能**：
 - 按住浮動按鈕可以拖曳到螢幕任何位置
-- 不會拖出視窗範圍
-- 滑鼠游標會顯示「移動」圖示
+- 不會拖出視窗範圍（自動 clamp 邊界）
+- 💾 **位置自動記憶**：拖曳後位置會自動儲存，重新開啟頁面時按鈕會復原到上次的位置
+- 展開方向自動判斷：按鈕靠近視窗上半則往下展開，靠近下半則往上展開
 
 ### 2. 右鍵選單搜尋
 
@@ -140,13 +141,28 @@ QuickLinker 適合任何需要頻繁跨網站搜尋內容的使用者：
 
 ```
 QuickLinker/
-├── manifest.json          # 擴充功能配置
-├── background.js          # Service Worker（右鍵選單、訊息處理）
-├── content.js            # 內容腳本（浮動按鈕、內容偵測）
-├── content.css           # 樣式表
-├── popup.html            # 設定介面 HTML
-├── popup.js              # 設定介面邏輯
-└── icons/                # 圖示資源
+├── manifest.json               # 擴充功能配置（Manifest V3）
+├── README.md
+├── CLAUDE.md
+├── LICENSE
+├── icons/                      # 圖示資源（16/64/128/256/512px）
+├── src/
+│   ├── background/
+│   │   └── background.js       # Service Worker（右鍵選單、訊息處理）
+│   ├── content/
+│   │   ├── content.js          # 內容腳本（浮動按鈕、內容偵測）
+│   │   └── content.css         # 樣式表
+│   └── popup/
+│       ├── popup.html          # 設定介面 HTML
+│       └── popup.js            # 設定介面邏輯
+├── paused/                     # 開發暫停中的功能
+│   ├── rules-config.html
+│   └── rules-config.js
+└── docs/                       # 文件與展示頁
+    ├── USER_GUIDE.md
+    ├── STORE_DESC.md
+    ├── FILE_STRUCTURE.md
+    └── index.html
 ```
 
 ### 內容偵測邏輯
@@ -165,6 +181,7 @@ QuickLinker 支援多種內容偵測方式：
 - `settings`：搜尋網站列表
 - `scanMode`：掃描模式設定
 - `closeOriginalTab`：分頁管理設定
+- `localStorage`（本機）：浮動按鈕位置（不同步，各裝置獨立記憶）
 
 ---
 
@@ -249,7 +266,7 @@ const hardcodedDomains = ['site1.com', 'site2.com', 'yoursite.com'];
 > A: 為了提升使用體驗，我們簡化了選單結構，讓您點擊一次就能搜尋。
 
 **Q: 浮動按鈕可以拖曳嗎？**
-> A: 可以！按住浮動按鈕即可拖曳到螢幕任何位置，不會拖出視窗範圍。
+> A: 可以！按住浮動按鈕即可拖曳到螢幕任何位置，不會拖出視窗範圍。拖曳後位置會自動儲存，下次開啟頁面時按鈕會出現在上次相同的位置。
 
 **Q: 會支援哪些網站的自動偵測？**
 > A: QuickLinker 採用開放架構，支援為任何網站添加自動偵測規則。您可以透過修改代碼或提交 Pull Request 來添加新網站支援。
@@ -273,6 +290,17 @@ const hardcodedDomains = ['site1.com', 'site2.com', 'yoursite.com'];
 ---
 
 ## 更新日誌
+
+### v3.4.0 (2026-02-22)
+- ✨ 新增浮動按鈕位置記憶功能：拖曳後自動儲存位置，重新開啟頁面時自動還原
+- 🚀 fullScan 模式平行化檢查所有網站，速度大幅提升
+- ⚡ MutationObserver 加入 debounce（300ms），偵測到番號後自動停止監聽，節省資源
+- 🔄 新增 URL 變化偵測，支援 SPA 頁面切換自動重新提取
+- 🛡️ 按鈕位置邊界保護：視窗縮小時自動 clamp 到有效範圍內
+
+### v3.3.4 (2026-02-22)
+- 🐛 修復浮動按鈕展開方向問題：自動偵測按鈕位於視窗上/下方，動態決定往上或往下展開，避免子按鈕被裁切
+- 🎨 子按鈕改為絕對定位，展開時不再影響主按鈕位置
 
 ### v3.3.3 (2025-11-29)
 - ✨ 改進浮動視窗拖曳功能（可全屏拖曳）
