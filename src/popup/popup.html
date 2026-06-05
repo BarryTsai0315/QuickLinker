@@ -230,28 +230,62 @@
       pointer-events: auto;
     }
     .age-note { display: block; margin-top: 10px; color: var(--muted); font-size: 12px; text-align: center; }
+    .age-gate {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .age-gate-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .age-gate-card {
+      position: relative; z-index: 1;
+      background: #16213e; border: 1px solid #0f3460;
+      border-radius: 16px; padding: 28px 24px; width: 280px;
+      text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .age-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+    .age-title { font-size: 18px; font-weight: 700; color: #e0e0e0; margin-bottom: 8px; }
+    .age-desc { font-size: 12px; line-height: 1.6; color: #8a9ab0; margin-bottom: 18px; }
+    .age-checks { text-align: left; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .age-check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #c0cce0; cursor: pointer; }
+    .age-check-row input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: #667eea; }
+    .age-confirm-btn {
+      width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: all .2s;
+      background: #2a3a5a; color: #5a7ab0; pointer-events: none;
+    }
+    .age-confirm-btn:not([disabled]) {
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      color: #fff; pointer-events: auto;
+    }
+    .age-confirm-btn:not([disabled]):hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .age-version-note { font-size: 10px; color: #3a4a6a; margin-top: 12px; }
   </style>
 </head>
 <body>
-  <div class="popup-shell">
-    <div id="ageGate">
-      <div class="age-backdrop"></div>
-      <div class="age-card">
-        <h2 data-i18n="age_title"></h2>
-        <p data-i18n="age_desc"></p>
-        <label class="age-check">
-          <input id="ageCheck1" type="checkbox">
-          <span data-i18n="age_check1"></span>
+  <!-- Age Gate Overlay -->
+  <div class="age-gate" id="ageGate" style="display:none">
+    <div class="age-gate-backdrop"></div>
+    <div class="age-gate-card">
+      <span class="age-icon">🔞</span>
+      <div class="age-title">年齡驗證</div>
+      <div class="age-desc">本擴充功能涉及成人內容網站。<br>繼續使用前請確認以下事項。</div>
+      <div class="age-checks">
+        <label class="age-check-row">
+          <input type="checkbox" id="ageCheck1">
+          <span>我確認我已年滿 18 歲</span>
         </label>
-        <label class="age-check">
-          <input id="ageCheck2" type="checkbox">
-          <span data-i18n="age_check2"></span>
+        <label class="age-check-row">
+          <input type="checkbox" id="ageCheck2">
+          <span>我了解本工具的用途，且在我所在地區使用此類內容合法</span>
         </label>
-        <button id="ageConfirmBtn" type="button" data-i18n="age_confirm"></button>
-        <small class="age-note" data-i18n="age_version_note"></small>
       </div>
+      <button class="age-confirm-btn" id="ageConfirmBtn" disabled>確認並繼續</button>
+      <div class="age-version-note" id="ageVersionNote"></div>
     </div>
-
+  </div>
+  <div class="popup-shell">
     <div id="updateNotice" hidden>
       <div class="age-backdrop"></div>
       <div class="age-card update-card">

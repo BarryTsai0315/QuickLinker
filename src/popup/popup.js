@@ -171,25 +171,33 @@ async function toggleTheme() {
   applyTheme(nextMode);
 }
 
-function checkAgeReady() {
+async function initAgeGate() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  const data = await chrome.storage.sync.get('ageVerifiedVersion');
+  if (data.ageVerifiedVersion === currentVersion) return;
+
+  const gate = document.getElementById('ageGate');
+  const confirmBtn = document.getElementById('ageConfirmBtn');
+  const versionNote = document.getElementById('ageVersionNote');
   const check1 = document.getElementById('ageCheck1');
   const check2 = document.getElementById('ageCheck2');
-  const button = document.getElementById('ageConfirmBtn');
-  if (!check1 || !check2 || !button) return;
-  button.classList.toggle('ready', check1.checked && check2.checked);
-}
 
-function confirmAge() {
-  const gate = document.getElementById('ageGate');
-  const button = document.getElementById('ageConfirmBtn');
-  if (!gate || !button || !button.classList.contains('ready')) return;
+  versionNote.textContent = `v${currentVersion} 更新後需重新確認`;
+  gate.style.display = 'flex';
 
-  chrome.storage.local.set({ ageConfirmedVersion: chrome.runtime.getManifest().version }, () => {
+  function updateBtn() {
+    const ok = check1.checked && check2.checked;
+    confirmBtn.disabled = !ok;
+    confirmBtn.classList.toggle('ready', ok);
+  }
+  check1.addEventListener('change', updateBtn);
+  check2.addEventListener('change', updateBtn);
+
+  confirmBtn.addEventListener('click', async () => {
+    await chrome.storage.sync.set({ ageVerifiedVersion: currentVersion });
+    gate.style.transition = 'opacity .35s';
     gate.style.opacity = '0';
-    setTimeout(() => {
-      gate.style.display = 'none';
-      showUpdateNotice();
-    }, 300);
+    setTimeout(() => { gate.style.display = 'none'; }, 380);
   });
 }
 
@@ -221,13 +229,8 @@ async function dismissUpdateNotice() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const ageGate = document.getElementById('ageGate');
+  await initAgeGate();
   const manifestVersion = chrome.runtime.getManifest().version;
-  const { ageConfirmedVersion = '' } = await chrome.storage.local.get(['ageConfirmedVersion']);
-  const ageConfirmed = ageConfirmedVersion === manifestVersion;
-  if (ageGate && ageConfirmed) {
-    ageGate.style.display = 'none';
-  }
 
   currentSettings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
   const normalizedHistory = normalizeSearchHistory(currentSettings.searchHistory);
@@ -241,15 +244,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderRecentSearches(currentSettings.searchHistory);
 
   document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-  document.getElementById('ageCheck1')?.addEventListener('change', checkAgeReady);
-  document.getElementById('ageCheck2')?.addEventListener('change', checkAgeReady);
-  document.getElementById('ageConfirmBtn')?.addEventListener('click', confirmAge);
   document.getElementById('updateConfirmBtn')?.addEventListener('click', dismissUpdateNotice);
   document.getElementById('optionsBtn')?.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
   const versionText = document.getElementById('versionText');
   if (versionText) versionText.textContent = `v${manifestVersion}`;
-  if (ageConfirmed) showUpdateNotice();
+  showUpdateNotice();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const codeEl = document.getElementById('detectedCode');
