@@ -110,6 +110,14 @@ async function setCachedUrl(url, available, finalUrl) {
   dbg('[QuickLinker Cache] WRITE:', url, '→', available ? 'available' : 'unavailable');
 }
 
+function isSoft404(finalUrl) {
+  try {
+    return new URL(finalUrl).pathname.startsWith('/404');
+  } catch {
+    return false;
+  }
+}
+
 function normalizeResultUrl(url) {
   const parsed = new URL(url);
   parsed.hostname = parsed.hostname.toLowerCase();
@@ -570,7 +578,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           dbg('[QuickLinker Background] Checking URL:', urlInfo.url);
           try {
             const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            if (response.status === 404) {
+            if (response.status === 404 || isSoft404(response.url)) {
               await setCachedUrl(urlInfo.url, false, urlInfo.url);
               results.push({ ...urlInfo, status: 'unavailable' });
             } else {
@@ -596,7 +604,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           try {
             const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            if (response.status === 404) {
+            if (response.status === 404 || isSoft404(response.url)) {
               await setCachedUrl(urlInfo.url, false, urlInfo.url);
               return { ...urlInfo, status: 'unavailable' };
             } else {
