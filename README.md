@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-![Version](https://img.shields.io/badge/version-3.6.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-3.6.2-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -201,6 +201,18 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.6.2
+- 修正 age gate 確認後更新通知未自動出現的問題
+
+### v3.6.1
+- MissAV 支援多版本搜尋，同一個番號會同時檢查正常版與無碼版
+- 無碼標籤已加入多語系，會跟隨目前的語言設定顯示
+- 修正右鍵選單、停用網站、浮動按鈕開關與設定資料的一致性
+- 網站管理可修改預設網站
+- 最近搜尋會合併大小寫相同的番號
+- 新增搜尋結果快取（30 分鐘），可在設定頁面關閉
+- 新增開發者模式
 
 ### v3.6.0
 - 重複搜尋同番號時聚焦既有分頁，不再開新分頁

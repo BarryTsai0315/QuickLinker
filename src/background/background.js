@@ -4,8 +4,11 @@
 
 let devMode = false;
 chrome.storage.sync.get(['devMode'], (r) => { devMode = Boolean(r.devMode); });
+let enableCache = true;
+chrome.storage.sync.get(['enableCache'], (r) => { enableCache = r.enableCache !== false; });
 chrome.storage.onChanged.addListener((changes, ns) => {
   if (ns === 'sync' && 'devMode' in changes) devMode = Boolean(changes.devMode.newValue);
+  if ('enableCache' in changes) enableCache = changes.enableCache.newValue !== false;
 });
 function dbg(...args) { if (devMode) console.log(...args); }
 
@@ -88,6 +91,7 @@ const CACHE_TTL = 30 * 60 * 1000;
 const TAB_GROUP_ID_NONE = -1;
 
 async function getCachedUrl(url) {
+  if (!enableCache) return null;
   const key = 'uc_' + url;
   const result = await chrome.storage.session.get(key);
   const entry = result[key];
@@ -105,17 +109,10 @@ async function getCachedUrl(url) {
 }
 
 async function setCachedUrl(url, available, finalUrl) {
+  if (!enableCache) return;
   const key = 'uc_' + url;
   await chrome.storage.session.set({ [key]: { available, finalUrl, timestamp: Date.now() } });
   dbg('[QuickLinker Cache] WRITE:', url, '→', available ? 'available' : 'unavailable');
-}
-
-function isSoft404(finalUrl) {
-  try {
-    return new URL(finalUrl).pathname.startsWith('/404');
-  } catch {
-    return false;
-  }
 }
 
 function normalizeResultUrl(url) {
@@ -578,10 +575,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           dbg('[QuickLinker Background] Checking URL:', urlInfo.url);
           try {
             const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            if (response.status === 404 || isSoft404(response.url)) {
+            dbg('[QuickLinker Fetch]', urlInfo.url, '→ status:', response.status, '| finalUrl:', response.url, '| redirected:', response.redirected);
+            if (response.status === 404) {
+              dbg('[QuickLinker Fetch] UNAVAILABLE (404):', urlInfo.url);
               await setCachedUrl(urlInfo.url, false, urlInfo.url);
               results.push({ ...urlInfo, status: 'unavailable' });
             } else {
+              dbg('[QuickLinker Fetch] AVAILABLE (non-404):', urlInfo.url);
               await setCachedUrl(urlInfo.url, true, response.url);
               results.push({ ...urlInfo, status: 'available', finalUrl: response.url });
               dbg('[QuickLinker Background] Best match found, sending response');
@@ -604,14 +604,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           try {
             const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            if (response.status === 404 || isSoft404(response.url)) {
+            dbg('[QuickLinker Fetch]', urlInfo.url, '→ status:', response.status, '| finalUrl:', response.url, '| redirected:', response.redirected);
+            if (response.status === 404) {
+              dbg('[QuickLinker Fetch] UNAVAILABLE (404):', urlInfo.url);
               await setCachedUrl(urlInfo.url, false, urlInfo.url);
               return { ...urlInfo, status: 'unavailable' };
             } else {
+              dbg('[QuickLinker Fetch] AVAILABLE (non-404):', urlInfo.url);
               await setCachedUrl(urlInfo.url, true, response.url);
               return { ...urlInfo, status: 'available', finalUrl: response.url };
             }
           } catch (error) {
+            dbg('[QuickLinker Fetch] ERROR:', urlInfo.url, error.message);
             return { ...urlInfo, status: 'error', error: error.message };
           }
         }));

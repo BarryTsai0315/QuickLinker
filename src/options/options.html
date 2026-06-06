@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickLinker Options</title>
+  <style>
+    * { box-sizing: border-box; }
+    html.theme-dark {
+      --bg: #1a1a2e;
+      --nav: #16213e;
+      --surface: #16213e;
+      --surface-2: #0f3460;
+      --text: #f4f7fb;
+      --muted: #b7c4d8;
+      --border: rgba(255,255,255,0.12);
+      --accent: #6c8cff;
+      --danger: #ff6b6b;
+      --shadow: rgba(0,0,0,0.32);
+    }
+    html.theme-light {
+      --bg: #f5f7fb;
+      --nav: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #eef3ff;
+      --text: #1f2937;
+      --muted: #64748b;
+      --border: #d8e0ee;
+      --accent: #667eea;
+      --danger: #dc2626;
+      --shadow: rgba(30,41,59,0.1);
+    }
+    body {
+      margin: 0;
+      min-width: 760px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 14px;
+    }
+    button, input { font: inherit; }
+    .opt-header {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 10px var(--shadow);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--accent);
+    }
+    .header-sub { color: var(--muted); font-size: 13px; }
+    .opt-layout { display: flex; min-height: calc(100vh - 58px); }
+    .opt-nav {
+      width: 160px;
+      flex: 0 0 160px;
+      padding: 12px 0;
+      background: var(--nav);
+      border-right: 1px solid var(--border);
+    }
+    .opt-nav-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 16px;
+      border: 0;
+      border-right: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+    }
+    .opt-nav-item:hover, .opt-nav-item.active {
+      background: var(--surface-2);
+      color: var(--text);
+      border-right-color: var(--accent);
+    }
+    .opt-content {
+      flex: 1;
+      padding: 22px;
+      max-width: 960px;
+    }
+    .opt-page { display: none; }
+    #page-sites { display: block; }
+    .section-head {
+      margin: 0 0 14px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 28px var(--shadow);
+      margin-bottom: 14px;
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+    .site-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: var(--surface-2);
+    }
+    .site-card-head { display: flex; justify-content: space-between; gap: 16px; }
+    .site-card h3 { margin: 0 0 6px; font-size: 16px; }
+    .site-card p {
+      margin: 0;
+      max-width: 620px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .version-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .version-chips span {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .button-row, .segmented { display: flex; flex-wrap: wrap; gap: 10px; }
+    .primary-btn, .secondary-btn, .danger-btn, .choice-btn {
+      min-height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .primary-btn, .choice-btn.active, .scan-card.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .danger-btn { color: var(--danger); }
+    .danger-panel { border-color: var(--danger); }
+    .form-grid { display: grid; gap: 10px; margin-top: 12px; max-width: 620px; }
+    input[type="text"] {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .inline-error, #ioFeedback.error { color: var(--danger); }
+    #ioFeedback { margin-top: 10px; color: var(--accent); }
+    .scan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .scan-card {
+      min-height: 112px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+    }
+    .scan-title, .setting-label { font-weight: 800; margin-bottom: 6px; }
+    .scan-desc, .setting-desc { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-row:last-child { border-bottom: 0; }
+    .switch { position: relative; width: 42px; height: 24px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch span {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .switch span::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+    .switch input:checked + span { background: var(--accent); }
+    .switch input:checked + span::before { transform: translateX(18px); }
+    .empty-state { color: var(--muted); padding: 10px 0; }
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <header class="opt-header">
+    <div class="brand">
+      <span class="brand-mark">QL</span>
+      <span>QuickLinker</span>
+      <span class="header-sub" data-i18n="options_title"></span>
+    </div>
+    <span class="header-sub" data-i18n="new_tab"></span>
+  </header>
+
+  <div class="opt-layout">
+    <nav class="opt-nav">
+      <button type="button" class="opt-nav-item active" data-page="sites">🌐 <span data-i18n="nav_sites"></span></button>
+      <button type="button" class="opt-nav-item" data-page="scan">🔍 <span data-i18n="nav_scan"></span></button>
+      <button type="button" class="opt-nav-item" data-page="appearance">🎨 <span data-i18n="nav_appearance"></span></button>
+      <button type="button" class="opt-nav-item" data-page="general">🔧 <span data-i18n="nav_general"></span></button>
+      <button type="button" class="opt-nav-item" data-page="io">📦 <span data-i18n="nav_io"></span></button>
+    </nav>
+
+    <main class="opt-content">
+      <section id="page-sites" class="opt-page">
+        <h1 class="section-head">🌐 <span data-i18n="nav_sites"></span></h1>
+        <div class="panel">
+          <div id="sitesList"></div>
+          <button id="addSiteBtn" type="button" class="primary-btn">＋ <span data-i18n="add_site"></span></button>
+          <div id="addSiteForm" hidden>
+            <form id="newSiteForm" class="form-grid">
+              <input id="newSiteName" type="text" data-i18n-placeholder="site_name_placeholder" required>
+              <input id="newSiteBaseUrl" type="text" data-i18n-placeholder="base_url_placeholder" required>
+              <div id="siteFormError" class="inline-error"></div>
+              <div class="button-row">
+                <button type="submit" class="primary-btn" data-i18n="add_site"></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-scan" class="opt-page">
+        <h1 class="section-head">🔍 <span data-i18n="nav_scan"></span></h1>
+        <div class="scan-grid">
+          <button type="button" class="scan-card" data-scan-mode="bestMatch">
+            <div class="scan-title" data-i18n="scan_best"></div>
+            <div class="scan-desc" data-i18n="scan_best_desc"></div>
+          </button>
+          <button type="button" class="scan-card" data-scan-mode="fullScan">
+            <div class="scan-title" data-i18n="scan_full"></div>
+            <div class="scan-desc" data-i18n="scan_full_desc"></div>
+          </button>
+        </div>
+      </section>
+
+      <section id="page-appearance" class="opt-page">
+        <h1 class="section-head">🎨 <span data-i18n="nav_appearance"></span></h1>
+        <div class="panel">
+          <div class="setting-label" data-i18n="theme_label"></div>
+          <div class="setting-desc" data-i18n="theme_desc"></div>
+          <div class="segmented" style="margin-top:12px;">
+            <button type="button" class="choice-btn" data-theme-mode="auto" data-i18n="theme_auto"></button>
+            <button type="button" class="choice-btn" data-theme-mode="dark" data-i18n="theme_dark"></button>
+            <button type="button" class="choice-btn" data-theme-mode="light" data-i18n="theme_light"></button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="setting-label" data-i18n="lang_label"></div>
+          <div class="setting-desc" data-i18n="lang_desc"></div>
+          <div class="segmented" style="margin-top:12px;">
+            <button type="button" class="choice-btn" data-lang-mode="auto">🌐 <span data-i18n="lang_auto"></span></button>
+            <button type="button" class="choice-btn" data-lang-mode="zh-TW">繁體中文</button>
+            <button type="button" class="choice-btn" data-lang-mode="zh-CN">简体中文</button>
+            <button type="button" class="choice-btn" data-lang-mode="en">English</button>
+            <button type="button" class="choice-btn" data-lang-mode="ja">日本語</button>
+            <button type="button" class="choice-btn" data-lang-mode="ko">한국어</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-general" class="opt-page">
+        <h1 class="section-head">🔧 <span data-i18n="nav_general"></span></h1>
+        <div class="panel">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label" data-i18n="close_tab"></div>
+              <div class="setting-desc" data-i18n="close_tab_desc"></div>
+            </div>
+            <label class="switch"><input id="closeOriginalTab" type="checkbox"><span></span></label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label" data-i18n="float_btn"></div>
+              <div class="setting-desc" data-i18n="float_btn_desc"></div>
+            </div>
+            <label class="switch"><input id="showFloatingButton" type="checkbox"><span></span></label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label" data-i18n="update_notify"></div>
+              <div class="setting-desc" data-i18n="update_notify_desc"></div>
+            </div>
+            <label class="switch"><input id="showUpdateNotification" type="checkbox"><span></span></label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label" data-i18n="enable_cache_label">啟用搜尋快取</div>
+              <div class="setting-desc" data-i18n="enable_cache_desc">快取 HEAD 請求結果 30 分鐘，加速重複搜尋；關閉後每次重新發送請求</div>
+            </div>
+            <label class="switch"><input id="enableCache" type="checkbox"><span></span></label>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px;">
+          <div class="setting-label" data-i18n="dev_section"></div>
+          <div class="setting-desc" data-i18n="dev_section_desc"></div>
+          <div class="setting-row" style="margin-top:12px;">
+            <div>
+              <div class="setting-label" data-i18n="dev_mode"></div>
+              <div class="setting-desc" data-i18n="dev_mode_desc"></div>
+            </div>
+            <label class="switch"><input id="devMode" type="checkbox"><span></span></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-io" class="opt-page">
+        <h1 class="section-head">📦 <span data-i18n="nav_io"></span></h1>
+        <div class="panel">
+          <p class="muted" data-i18n="io_desc"></p>
+          <div class="button-row">
+            <button id="exportBtn" type="button" class="secondary-btn">⬇ <span data-i18n="export"></span></button>
+            <button id="importBtn" type="button" class="secondary-btn">⬆ <span data-i18n="import"></span></button>
+            <input id="importFile" type="file" accept="application/json,.json">
+          </div>
+          <div id="ioFeedback"></div>
+        </div>
+        <div class="panel danger-panel">
+          <div class="setting-label" data-i18n="danger"></div>
+          <div class="setting-desc" data-i18n="danger_desc"></div>
+          <button id="clearAllBtn" type="button" class="danger-btn" style="margin-top:12px;">🗑 <span data-i18n="clear_all"></span></button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

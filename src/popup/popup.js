@@ -197,7 +197,7 @@ async function initAgeGate() {
     await chrome.storage.sync.set({ ageVerifiedVersion: currentVersion });
     gate.style.transition = 'opacity .35s';
     gate.style.opacity = '0';
-    setTimeout(() => { gate.style.display = 'none'; }, 380);
+    setTimeout(() => { gate.style.display = 'none'; showUpdateNotice(); }, 380);
   });
 }
 
