@@ -233,15 +233,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const manifestVersion = chrome.runtime.getManifest().version;
 
   currentSettings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
-  const normalizedHistory = normalizeSearchHistory(currentSettings.searchHistory);
-  if (JSON.stringify(normalizedHistory) !== JSON.stringify(currentSettings.searchHistory || [])) {
-    currentSettings.searchHistory = normalizedHistory;
-    await chrome.storage.sync.set({ searchHistory: normalizedHistory });
+  const localData = await chrome.storage.local.get(['searchHistory']);
+  const normalizedHistory = normalizeSearchHistory(localData.searchHistory);
+  if (JSON.stringify(normalizedHistory) !== JSON.stringify(localData.searchHistory || [])) {
+    await chrome.storage.local.set({ searchHistory: normalizedHistory });
   }
+  currentSettings.searchHistory = normalizedHistory;
   applyTheme(currentSettings.themeMode);
   applyLang(currentSettings.language);
   renderSiteToggles(currentSettings.settings);
-  renderRecentSearches(currentSettings.searchHistory);
+  renderRecentSearches(normalizedHistory);
 
   document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
   document.getElementById('updateConfirmBtn')?.addEventListener('click', dismissUpdateNotice);
@@ -361,13 +362,13 @@ function escapeHtml(value) {
 async function appendSearchHistory(code) {
   const normalized = normalizeSearchCode(code);
   if (!normalized) return;
-  const result = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+  const result = await chrome.storage.local.get(['searchHistory']);
   const existing = normalizeSearchHistory(result.searchHistory);
   const updated = [
     { code: normalized.code, normalizedCode: normalized.key, timestamp: Date.now() },
     ...existing.filter((item) => item.normalizedCode !== normalized.key)
   ].slice(0, 20);
-  await chrome.storage.sync.set({ searchHistory: updated });
+  await chrome.storage.local.set({ searchHistory: updated });
   renderRecentSearches(updated);
 }
 

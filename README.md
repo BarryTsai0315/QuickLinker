@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-![Version](https://img.shields.io/badge/version-3.6.2-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-3.8.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -122,10 +122,11 @@ fetch(url, { method: 'HEAD', cache: 'no-cache' })
 
 ### 分頁去重邏輯
 
-點擊搜尋前，先掃描所有已開啟分頁：
+點擊搜尋前，先掃描所有已開啟分頁，依序比對：
 
-- **完全匹配**：URL 正規化後相同（去除尾斜線、hash、統一 hostname 大小寫）
-- **語意等價**：MissAV 支援 `dm2/` 路徑前綴的等價判斷
+1. **完全匹配**：正規化後 URL 相同（lowercase hostname、去 hash、去尾斜線、保留 query）
+2. **MissAV 語意等價**：相同番號 + 相同 variant（正常 / 無碼）+ 相同 query，不論路徑前綴（`/dm2/`、`/en-us/`、`/zh-tw/` 等任意 locale 前綴皆視為同頁）
+3. **通用等價**：非 MissAV 站以 `hostname + lowercase pathname（去 locale 前綴 + 去尾斜線）+ query` 計算等價 key
 
 若找到匹配分頁，呼叫 `chrome.tabs.update` 聚焦該分頁，不另開新頁。
 
@@ -201,6 +202,16 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.8.0
+- 修正最近搜尋時間戳凍結問題：搜尋歷史統一改用 `chrome.storage.local`，讓浮動按鈕偵測與 popup 顯示共享同一份記錄
+- 右鍵選單搜尋歷史寫入一併改用 `chrome.storage.local`
+- 新增一次性遷移：擴充功能啟動時自動將舊版殘留在 `chrome.storage.sync` 的搜尋歷史合併至 local
+
+### v3.7.0
+- 修正分頁去重漏判：exact 比對改為正規化後比對，修復大小寫 / 尾斜線差異造成的重複開分頁
+- MissAV 路徑等價判定支援任意 locale 前綴（`/en-us/`、`/zh-tw/` 等多段前綴不再漏判）
+- 新增通用跨變體 fallback：JavDB 等非 MissAV 站的大小寫 / 尾斜線差異也能命中既有分頁
 
 ### v3.6.2
 - 修正 age gate 確認後更新通知未自動出現的問題

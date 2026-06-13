@@ -138,17 +138,36 @@ function getResultUrlCandidates(url, matchUrls = []) {
   return [...new Set(candidates)];
 }
 
+function getGenericResultKey(parsedOrUrl) {
+  try {
+    const parsed = typeof parsedOrUrl === 'string' ? new URL(parsedOrUrl) : parsedOrUrl;
+    const hostname = parsed.hostname.toLowerCase();
+    let pathname = parsed.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    pathname = pathname.replace(/^\/[a-z]{2}(-[a-z]{2})?\//, '/');
+    return `${hostname}:${pathname}:${parsed.search}`;
+  } catch (e) {
+    return '';
+  }
+}
+
 function getEquivalentResultKey(url) {
   const parsed = new URL(url);
   const hostname = parsed.hostname.toLowerCase();
-  if (hostname !== 'missav.ai') return '';
+
+  if (hostname !== 'missav.ai') return getGenericResultKey(parsed);
 
   const path = parsed.pathname.toLowerCase();
-  const match = path.match(/^\/(?:[a-z]{2}\/)?(?:dm\d+\/)?([a-z0-9]+-\d+)(-uncensored-leak)?\/?$/);
-  if (!match) return '';
+  const segments = path.split('/').filter(Boolean);
 
-  const variant = match[2] ? 'uncensored' : 'normal';
-  return `${hostname}:${match[1]}:${variant}:${parsed.search}`;
+  const CODE_RE = /^([a-z0-9]+-\d+)(-uncensored-leak)?$/;
+  for (const seg of segments) {
+    const m = seg.match(CODE_RE);
+    if (m) {
+      const variant = m[2] ? 'uncensored' : 'normal';
+      return `${hostname}:${m[1]}:${variant}:${parsed.search}`;
+    }
+  }
+  return '';
 }
 
 function getResultUrlCandidateKeys(url, matchUrls = []) {
@@ -243,11 +262,7 @@ async function openResultUrl(url, matchUrls = [], senderTab = null) {
   const targets = getResultUrlCandidates(url, effectiveMatchUrls);
   const targetKeys = getResultUrlCandidateKeys(url, effectiveMatchUrls);
   const tabs = await chrome.tabs.query({});
-  const existingTab = tabs.find(t => {
-    if (t.url === url) return true;
-    const tabKey = getEquivalentResultKey(t.url);
-    return tabKey && targetKeys.includes(tabKey);
-  });
+  const existingTab = tabs.find(t => tabMatchesTargets(t, targets, targetKeys));
   const scanRows = getDedupeScanRows(tabs, targets, targetKeys);
 
   logDedupe('SCAN', {
@@ -368,13 +383,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
           });
           const normalized = normalizeSearchCode(info.selectionText);
           if (!normalized) return;
-          chrome.storage.sync.get(['searchHistory'], ({ searchHistory = [] }) => {
+          chrome.storage.local.get(['searchHistory'], ({ searchHistory = [] }) => {
             const history = Array.isArray(searchHistory) ? searchHistory : [];
             const next = [
               { code: normalized.code, normalizedCode: normalized.key, timestamp: Date.now() },
               ...history.filter((item) => normalizeSearchCode(item.code)?.key !== normalized.key)
             ].slice(0, 20);
-            chrome.storage.sync.set({ searchHistory: next });
+            chrome.storage.local.set({ searchHistory: next });
           });
         }
       }
@@ -385,6 +400,33 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // =============================================
 // 擴充功能生命週期事件 (Extension Lifecycle Events)
 // =============================================
+
+async function migrateSearchHistoryFromSync() {
+  const syncData = await chrome.storage.sync.get(['searchHistory']);
+  const syncHistory = syncData.searchHistory;
+  if (!Array.isArray(syncHistory) || syncHistory.length === 0) return;
+  const localData = await chrome.storage.local.get(['searchHistory']);
+  const localHistory = Array.isArray(localData.searchHistory) ? localData.searchHistory : [];
+  const merged = new Map();
+  for (const item of [...localHistory, ...syncHistory]) {
+    const norm = normalizeSearchCode(item.code);
+    if (!norm) continue;
+    const existing = merged.get(norm.key);
+    if (!existing || Number(item.timestamp) > Number(existing.timestamp)) {
+      merged.set(norm.key, { code: item.code, normalizedCode: norm.key, timestamp: item.timestamp });
+    }
+  }
+  const result = Array.from(merged.values())
+    .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+    .slice(0, 20);
+  await chrome.storage.local.set({ searchHistory: result });
+  await chrome.storage.sync.remove('searchHistory');
+  dbg('[QuickLinker] Migrated searchHistory from sync to local:', result.length, 'entries');
+}
+
+chrome.runtime.onStartup.addListener(() => {
+  migrateSearchHistoryFromSync();
+});
 
 chrome.runtime.onInstalled.addListener((details) => {
   const currentVersion = chrome.runtime.getManifest().version;
@@ -407,6 +449,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.action.setBadgeText({ text: 'NEW' });
     chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
   }
+
+  migrateSearchHistoryFromSync();
 
   chrome.storage.sync.get(['settings'], (result) => {
     let settings = result.settings || [];
