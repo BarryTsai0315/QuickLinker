@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-![Version](https://img.shields.io/badge/version-3.8.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-3.8.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -202,6 +202,10 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.8.1
+- 修正完整掃描模式會把 404 / 請求失敗的連結也畫成按鈕的問題：fullScan 現在只顯示確認可用（綠色）的按鈕，最佳結果模式行為不變
+- 修正 MissAV 自訂前綴來源（如 `https://missav.ai/fc2-ppv-{}`）被變體展開吃掉前綴並與標準 MissAV 來源產生重複 URL 的問題：僅 baseUrl 樣板為 `https://missav.ai/{}` 的標準來源才自動展開有碼 / 無碼變體
 
 ### v3.8.0
 - 修正最近搜尋時間戳凍結問題：搜尋歷史統一改用 `chrome.storage.local`，讓浮動按鈕偵測與 popup 顯示共享同一份記錄

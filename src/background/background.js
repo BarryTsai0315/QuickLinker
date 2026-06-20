@@ -568,13 +568,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (limitedSites && !limitedSites.includes(siteVersionId)) {
               continue;
             }
-            let versionHostname = '';
+            // 僅「標準 missav 來源」（baseUrl 樣板為 https://missav.ai/{}）才自動展開 normal/uncensored 變體；
+            // 其餘 missav 來源（如 fc2-ppv-{}）走一般流程，保留原始 baseUrl 前綴，避免前綴遺失與重複 URL
+            let isStandardMissavBase = false;
             try {
-              versionHostname = new URL(version.baseUrl.replace('{}', code)).hostname;
+              const templateUrl = new URL(version.baseUrl.replace('{}', '__QL_CODE__'));
+              isStandardMissavBase = templateUrl.hostname === 'missav.ai' && templateUrl.pathname === '/__QL_CODE__';
             } catch (error) {
-              versionHostname = '';
+              isStandardMissavBase = false;
             }
-            if (versionHostname === 'missav.ai') {
+            if (isStandardMissavBase) {
               const missavCode = encodeURIComponent(code.toLowerCase());
               dbg('[QuickLinker Background] Expanding MissAV variants:', code);
               tasks.push({

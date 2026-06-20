@@ -308,7 +308,16 @@ async function updateFloatingButtons(code, limitedSites = null, urls = null) {
         urls: urls
     });
 
-    updateButtonStates(response.results);
+    // fullScan 模式下只渲染確認可用（available）的按鈕，避免堆出大量 404 廢按鈕
+    const { scanMode } = await chrome.storage.sync.get(['scanMode']);
+    const effectiveScanMode = urls ? 'fullScan' : scanMode;
+    let results = response.results || [];
+    if (effectiveScanMode === 'fullScan') {
+        results = results.filter(result => result.status === 'available');
+        dbg('[QuickLinker] fullScan: filtered to available only,', results.length, 'buttons');
+    }
+
+    updateButtonStates(results);
 }
 
 async function createFloatingButton(extractResult) {
