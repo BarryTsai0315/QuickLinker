@@ -1,485 +1,429 @@
-// =============================================
-// 版本更新通知 (Version Update Notification)
-// =============================================
-
-const VERSION_FEATURES = {
-  '3.4.0': [
-    '✨ 浮動按鈕位置記憶：拖曳後自動儲存，重開頁面恢復上次位置',
-    '🚀 fullScan 模式平行化，速度大幅提升',
-    '⚡ MutationObserver 加入 debounce，偵測到番號後自動停止監聽',
-    '🔄 新增 URL 變化偵測，支援 SPA 頁面切換',
-    '🛡️ 按鈕位置邊界保護：視窗縮小時自動 clamp 到有效範圍'
-  ],
-  '3.3.4': [
-    '🐛 修復浮動按鈕展開方向問題，避免子按鈕被裁切',
-    '🎨 子按鈕改為絕對定位，展開時不影響主按鈕位置'
-  ],
-  '3.3.3': [
-    '✨ 改進浮動視窗拖曳功能（可全屏拖曳）',
-    '🐛 修復拖曳後無法釋放的問題'
-  ]
+const DEFAULT_SETTINGS = {
+  settings: [],
+  scanMode: 'bestMatch',
+  closeOriginalTab: false,
+  showFloatingButton: true,
+  showUpdateNotification: false,
+  updateFromVersion: null,
+  themeMode: 'auto',
+  language: 'auto',
+  searchHistory: [],
+  devMode: false
 };
 
-function checkAndShowUpdateNotification() {
-  chrome.storage.sync.get(['showUpdateNotification', 'updateFromVersion'], (result) => {
-    if (!result.showUpdateNotification) return;
+const I18N = {
+  'zh-TW': {
+    age_title: '年齡驗證', age_desc: '本擴充功能涉及成人內容網站。<br>繼續使用前請確認以下事項。',
+    age_check1: '我確認我已年滿 18 歲',
+    age_check2: '我了解本工具的用途，且在我所在地區使用此類內容合法',
+    age_confirm: '確認並繼續', age_version_note: 'v3.6.0 更新後需重新確認',
+    update_title: '本次更新',
+    update_from: '更新版本',
+    update_item_missav: 'MissAV 支援多版本搜尋，同一個番號會同時檢查正常版與無碼版，無碼標籤跟隨語言設定。',
+    update_item_focus_tab: '重複搜尋同一個番號時會聚焦既有分頁，不再堆積重複頁面。',
+    update_item_cache: '新增搜尋結果快取（30 分鐘），可在設定頁面關閉。',
+    update_item_exclude_self: '新增「排除目前網站」設定，在 MissAV 等頁面改為顯示其他已設定站台。',
+    update_item_availability: '大幅收緊連結可用性判定，不再把 Cloudflare 阻擋或重導首頁誤判為可用。',
+    update_item_tokens: '網站管理可修改預設網站；搜尋網址支援 {lower}、{upper}、{nodash}、{dmm} 具名 token，右鍵選單同步套用。',
+    update_item_javdb: '修正 JavDB 預設樣板失效問題，既有使用者需自行到選項頁調整。',
+    update_full_log: '查看完整更新紀錄 →',
+    update_confirm: '知道了',
+    detected: '偵測到的番號', sites: '搜尋網站', recent: '最近搜尋',
+    options: '⚙ 選項', search_btn: '🔍 一鍵搜尋', searching: '搜尋中...',
+    no_code: '未偵測到番號', no_sites: '尚未設定搜尋網站', no_recent: '尚無最近搜尋',
+    just_now: '剛才', minutes_ago: '分鐘前', hours_ago: '小時前', days_ago: '天前'
+  },
+  'zh-CN': {
+    age_title: '年龄验证', age_desc: '本扩展涉及成人内容网站。<br>继续使用前请确认以下事项。',
+    age_check1: '我确认我已年满 18 岁',
+    age_check2: '我了解本工具的用途，且在我所在地区使用此类内容合法',
+    age_confirm: '确认并继续', age_version_note: 'v3.6.0 更新后需重新确认',
+    update_title: '本次更新',
+    update_from: '更新版本',
+    update_item_missav: 'MissAV 支持多版本搜索，同一个番号会同时检查普通版与无码版，无码标签跟随语言设置。',
+    update_item_focus_tab: '重复搜索同一个番号时会聚焦已有标签页，不再堆积重复页面。',
+    update_item_cache: '新增搜索结果缓存（30 分钟），可在设置页面关闭。',
+    update_item_exclude_self: '新增「排除当前网站」设置，在 MissAV 等页面改为显示其他已设置站点。',
+    update_item_availability: '大幅收紧链接可用性判定，不再把 Cloudflare 拦截或重定向首页误判为可用。',
+    update_item_tokens: '网站管理可修改默认网站；搜索网址支持 {lower}、{upper}、{nodash}、{dmm} 具名 token，右键菜单同步套用。',
+    update_item_javdb: '修正 JavDB 默认模板失效问题，已有用户需自行到选项页调整。',
+    update_full_log: '查看完整更新记录 →',
+    update_confirm: '知道了',
+    detected: '检测到的番号', sites: '搜索网站', recent: '最近搜索',
+    options: '⚙ 选项', search_btn: '🔍 一键搜索', searching: '搜索中...',
+    no_code: '未检测到番号', no_sites: '尚未设置搜索网站', no_recent: '暂无最近搜索',
+    just_now: '刚刚', minutes_ago: '分钟前', hours_ago: '小时前', days_ago: '天前'
+  },
+  en: {
+    age_title: 'Age Verification', age_desc: 'This extension involves adult content sites.<br>Please confirm the following before continuing.',
+    age_check1: 'I confirm I am 18 years of age or older',
+    age_check2: 'I understand the purpose of this tool and it is legal to access such content in my region',
+    age_confirm: 'Confirm & Continue', age_version_note: 'Re-confirmation required after v3.6.0 update',
+    update_title: 'What changed',
+    update_from: 'Updated',
+    update_item_missav: 'MissAV supports multi-version search, checking regular and uncensored pages for the same code, with a localized uncensored label.',
+    update_item_focus_tab: 'Searching the same code again focuses the existing tab instead of piling up duplicates.',
+    update_item_cache: 'Added a search result cache (30 minutes), which can be turned off in settings.',
+    update_item_exclude_self: 'Added an "exclude current site" setting, so pages like MissAV now show your other configured sites.',
+    update_item_availability: 'Availability checks are much stricter: Cloudflare blocks and homepage redirects are no longer treated as available.',
+    update_item_tokens: 'Default sites can be edited, and search URLs support the {lower}, {upper}, {nodash} and {dmm} tokens, applied to context menus too.',
+    update_item_javdb: 'Fixed the broken default JavDB template. Existing users need to adjust it manually in the options page.',
+    update_full_log: 'View full changelog →',
+    update_confirm: 'Got it',
+    detected: 'Detected Code', sites: 'Search Sites', recent: 'Recent Searches',
+    options: '⚙ Options', search_btn: '🔍 Quick Search', searching: 'Searching...',
+    no_code: 'No code detected', no_sites: 'No search sites configured', no_recent: 'No recent searches',
+    just_now: 'Just now', minutes_ago: 'min ago', hours_ago: 'hours ago', days_ago: 'days ago'
+  },
+  ja: {
+    age_title: '年齢確認', age_desc: 'この拡張機能はアダルトコンテンツサイトに関連しています。<br>続行する前に以下を確認してください。',
+    age_check1: '私は18歳以上であることを確認します',
+    age_check2: 'このツールの目的を理解し、私の地域でのアクセスが合法であることを確認します',
+    age_confirm: '確認して続ける', age_version_note: 'v3.6.0 更新後に再確認が必要です',
+    update_title: '今回の更新',
+    update_from: '更新バージョン',
+    update_item_missav: 'MissAV は複数バージョン検索に対応し、同じコードで通常版と無修正版を確認します。無修正ラベルは言語設定に従います。',
+    update_item_focus_tab: '同じコードを再検索したとき、既存のタブにフォーカスし、重複ページを増やしません。',
+    update_item_cache: '検索結果キャッシュ（30 分）を追加しました。設定ページで無効にできます。',
+    update_item_exclude_self: '「現在のサイトを除外」設定を追加し、MissAV などのページでは他の設定済みサイトを表示します。',
+    update_item_availability: 'リンクの可用性判定を大幅に厳格化し、Cloudflare のブロックやトップページへのリダイレクトを利用可能と誤判定しなくなりました。',
+    update_item_tokens: '既定サイトを編集でき、検索 URL は {lower}、{upper}、{nodash}、{dmm} トークンに対応。右クリックメニューにも適用されます。',
+    update_item_javdb: 'JavDB の既定テンプレートの不具合を修正しました。既存ユーザーはオプションページで手動調整が必要です。',
+    update_full_log: '完全な更新履歴を見る →',
+    update_confirm: '了解',
+    detected: '検出されたコード', sites: '検索サイト', recent: '最近の検索',
+    options: '⚙ オプション', search_btn: '🔍 クイック検索', searching: '検索中...',
+    no_code: 'コードが検出されません', no_sites: '検索サイトが未設定です', no_recent: '最近の検索はありません',
+    just_now: 'たった今', minutes_ago: '分前', hours_ago: '時間前', days_ago: '日前'
+  },
+  ko: {
+    age_title: '나이 확인', age_desc: '이 확장 프로그램은 성인 콘텐츠 사이트와 관련이 있습니다.<br>계속하기 전에 다음을 확인해 주세요.',
+    age_check1: '저는 만 18세 이상임을 확인합니다',
+    age_check2: '이 도구의 목적을 이해하며, 제 지역에서 해당 콘텐츠 이용이 합법적임을 확인합니다',
+    age_confirm: '확인 후 계속', age_version_note: 'v3.6.0 업데이트 후 재확인 필요',
+    update_title: '이번 업데이트',
+    update_from: '업데이트 버전',
+    update_item_missav: 'MissAV 다중 버전 검색을 지원하여 같은 코드의 일반판과 무수정판을 함께 확인하며, 무수정 라벨은 언어 설정을 따릅니다.',
+    update_item_focus_tab: '같은 코드를 다시 검색하면 기존 탭으로 포커스되어 중복 페이지가 쌓이지 않습니다.',
+    update_item_cache: '검색 결과 캐시(30분)를 추가했으며 설정 페이지에서 끌 수 있습니다.',
+    update_item_exclude_self: '「현재 사이트 제외」 설정을 추가하여 MissAV 등의 페이지에서는 다른 설정된 사이트를 표시합니다.',
+    update_item_availability: '링크 가용성 판정을 크게 강화하여 Cloudflare 차단이나 홈으로의 리디렉션을 사용 가능으로 오판하지 않습니다.',
+    update_item_tokens: '기본 사이트를 편집할 수 있고, 검색 URL이 {lower}, {upper}, {nodash}, {dmm} 토큰을 지원하며 컨텍스트 메뉴에도 적용됩니다.',
+    update_item_javdb: 'JavDB 기본 템플릿 오류를 수정했습니다. 기존 사용자는 옵션 페이지에서 직접 조정해야 합니다.',
+    update_full_log: '전체 업데이트 내역 보기 →',
+    update_confirm: '확인',
+    detected: '감지된 코드', sites: '검색 사이트', recent: '최근 검색',
+    options: '⚙ 옵션', search_btn: '🔍 빠른 검색', searching: '검색 중...',
+    no_code: '코드가 감지되지 않음', no_sites: '검색 사이트가 설정되지 않음', no_recent: '최근 검색 없음',
+    just_now: '방금', minutes_ago: '분 전', hours_ago: '시간 전', days_ago: '일 전'
+  }
+};
 
-    const currentVersion = chrome.runtime.getManifest().version;
-    const versionEl = document.getElementById('updateVersion');
-    const featuresList = document.getElementById('updateFeatures');
-    const notification = document.getElementById('updateNotification');
+let currentSettings = DEFAULT_SETTINGS;
+let currentLang = 'en';
+let detectedCode = '';
 
-    if (!versionEl || !featuresList || !notification) return;
+function normalizeSearchCode(value) {
+  const normalized = String(value || '')
+    .normalize('NFKC')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^A-Z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const key = normalized.replace(/[^A-Z0-9]/g, '');
+  if (!/[A-Z]/.test(key) || !/[0-9]/.test(key)) return null;
+  return { code: normalized, key };
+}
 
-    versionEl.textContent = `v${currentVersion}`;
+function normalizeSearchHistory(history) {
+  const seen = new Set();
+  const normalized = [];
+  (Array.isArray(history) ? history : []).forEach((item) => {
+    const parsed = normalizeSearchCode(item?.code);
+    if (!parsed || seen.has(parsed.key)) return;
+    seen.add(parsed.key);
+    normalized.push({ ...item, code: parsed.code, normalizedCode: parsed.key });
+  });
+  return normalized.slice(0, 20);
+}
 
-    const features = VERSION_FEATURES[currentVersion] || ['🎉 效能改進與錯誤修復'];
-    featuresList.innerHTML = features.map(f => `<li>${f}</li>`).join('');
+function detectLang() {
+  const lang = navigator.language || 'en';
+  if (lang === 'zh-TW' || lang === 'zh-HK') return 'zh-TW';
+  if (lang.startsWith('zh')) return 'zh-CN';
+  if (lang.startsWith('ja')) return 'ja';
+  if (lang.startsWith('ko')) return 'ko';
+  return 'en';
+}
 
-    notification.classList.remove('hidden');
+function resolveLang(pref) {
+  return pref === 'auto' ? detectLang() : pref;
+}
+
+function applyLang(lang) {
+  currentLang = resolveLang(lang);
+  const strings = I18N[currentLang] || I18N.en;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    if (!strings[key]) return;
+    if (key === 'age_desc') {
+      el.innerHTML = strings[key];
+    } else {
+      el.textContent = strings[key];
+    }
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Tab switching
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const tabName = e.target.id.replace('Tab', '');
-            showTab(tabName);
-        });
-    });
+function applyTheme(mode) {
+  const isDark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.className = isDark ? 'theme-dark' : 'theme-light';
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) toggle.textContent = isDark ? '🌙' : '☀️';
+}
 
-    // Main actions
-    document.getElementById('addSiteButton').addEventListener('click', addSite);
-    document.getElementById('exportSettings').addEventListener('click', exportSettings);
-    document.getElementById('importButton').addEventListener('click', () => document.getElementById('importSettings').click());
-    document.getElementById('importSettings').addEventListener('change', importSettings);
+async function toggleTheme() {
+  const result = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+  const effectiveDark = document.documentElement.classList.contains('theme-dark');
+  const nextMode = result.themeMode === 'dark' || (result.themeMode === 'auto' && effectiveDark) ? 'light' : 'dark';
+  await chrome.storage.sync.set({ themeMode: nextMode });
+  applyTheme(nextMode);
+}
 
-    // Scan mode selection
-    document.querySelectorAll('input[name="scanMode"]').forEach(radio => {
-        radio.addEventListener('change', saveScanMode);
-    });
+async function initAgeGate() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  const data = await chrome.storage.sync.get('ageVerifiedVersion');
+  if (data.ageVerifiedVersion === currentVersion) return;
 
-    // Close original tab setting
-    document.getElementById('closeOriginalTab').addEventListener('change', saveCloseOriginalTabSetting);
+  const gate = document.getElementById('ageGate');
+  const confirmBtn = document.getElementById('ageConfirmBtn');
+  const versionNote = document.getElementById('ageVersionNote');
+  const check1 = document.getElementById('ageCheck1');
+  const check2 = document.getElementById('ageCheck2');
 
-    // 更新通知：關閉按鈕
-    document.getElementById('closeUpdateBtn').addEventListener('click', () => {
-        document.getElementById('updateNotification').classList.add('hidden');
-        chrome.storage.sync.set({ showUpdateNotification: false });
-        chrome.action.setBadgeText({ text: '' });
-    });
+  versionNote.textContent = `v${currentVersion} 更新後需重新確認`;
+  gate.style.display = 'flex';
 
-    // Event delegation for site card buttons (only add once)
-    document.getElementById('sitesContainer').addEventListener('click', (e) => {
-        const editBtn = e.target.closest('.edit-site-btn');
-        const deleteBtn = e.target.closest('.delete-site-btn');
+  function updateBtn() {
+    const ok = check1.checked && check2.checked;
+    confirmBtn.disabled = !ok;
+    confirmBtn.classList.toggle('ready', ok);
+  }
+  check1.addEventListener('change', updateBtn);
+  check2.addEventListener('change', updateBtn);
 
-        if (editBtn) {
-            const siteId = editBtn.dataset.siteId;
-            editSite(siteId);
-        } else if (deleteBtn) {
-            const siteId = deleteBtn.dataset.siteId;
-            deleteSite(siteId);
-        }
-    });
+  confirmBtn.addEventListener('click', async () => {
+    await chrome.storage.sync.set({ ageVerifiedVersion: currentVersion });
+    gate.style.transition = 'opacity .35s';
+    gate.style.opacity = '0';
+    setTimeout(() => { gate.style.display = 'none'; showUpdateNotice(); }, 380);
+  });
+}
 
-    // Initial load
-    loadSettingsAndRender();
-    checkAndShowUpdateNotification();
+function showUpdateNotice() {
+  const notice = document.getElementById('updateNotice');
+  if (!notice || !currentSettings.showUpdateNotification) return;
+
+  const ageGate = document.getElementById('ageGate');
+  if (ageGate && ageGate.style.display !== 'none') return;
+
+  const strings = I18N[currentLang] || I18N.en;
+  const manifestVersion = chrome.runtime.getManifest().version;
+  const versionText = document.getElementById('updateVersionText');
+  if (versionText) {
+    const fromVersion = currentSettings.updateFromVersion;
+    versionText.textContent = fromVersion
+      ? `${strings.update_from}: ${fromVersion} -> ${manifestVersion}`
+      : `${strings.update_from}: v${manifestVersion}`;
+  }
+  notice.hidden = false;
+}
+
+async function dismissUpdateNotice() {
+  const notice = document.getElementById('updateNotice');
+  if (notice) notice.hidden = true;
+  currentSettings.showUpdateNotification = false;
+  await chrome.storage.sync.set({ showUpdateNotification: false });
+  if (chrome.action?.setBadgeText) chrome.action.setBadgeText({ text: '' });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await initAgeGate();
+  const manifestVersion = chrome.runtime.getManifest().version;
+
+  currentSettings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+  const localData = await chrome.storage.local.get(['searchHistory']);
+  const normalizedHistory = normalizeSearchHistory(localData.searchHistory);
+  if (JSON.stringify(normalizedHistory) !== JSON.stringify(localData.searchHistory || [])) {
+    await chrome.storage.local.set({ searchHistory: normalizedHistory });
+  }
+  currentSettings.searchHistory = normalizedHistory;
+  applyTheme(currentSettings.themeMode);
+  applyLang(currentSettings.language);
+  renderSiteToggles(currentSettings.settings);
+  renderRecentSearches(normalizedHistory);
+
+  document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('updateConfirmBtn')?.addEventListener('click', dismissUpdateNotice);
+  document.getElementById('optionsBtn')?.addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+  const versionText = document.getElementById('versionText');
+  if (versionText) versionText.textContent = `v${manifestVersion}`;
+  showUpdateNotice();
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const codeEl = document.getElementById('detectedCode');
+  if (!tab?.id) return;
+
+  chrome.tabs.sendMessage(tab.id, { type: 'GET_CODE' }, (response) => {
+    const strings = I18N[currentLang] || I18N.en;
+    if (chrome.runtime.lastError) {
+      detectedCode = '';
+      if (codeEl) codeEl.textContent = strings.no_code;
+      return;
+    }
+    const rawCode = response?.code || response?.result?.code || '';
+    const resultCode = typeof rawCode === 'string' ? rawCode : rawCode?.code || '';
+    const normalized = normalizeSearchCode(resultCode);
+    detectedCode = normalized?.code || resultCode;
+    if (codeEl) codeEl.textContent = detectedCode || strings.no_code;
+    if (detectedCode) appendSearchHistory(detectedCode);
+  });
 });
 
-let currentSettings = []; // Global variable to hold current settings
+function renderSiteToggles(settings) {
+  const list = document.getElementById('siteToggleList');
+  if (!list) return;
+  const strings = I18N[currentLang] || I18N.en;
+  list.innerHTML = '';
 
-function showTab(tabName) {
-    console.log('[QuickLinker] Switching to tab:', tabName);
+  if (!Array.isArray(settings) || settings.length === 0) {
+    list.innerHTML = `<div class="empty-state">${escapeHtml(strings.no_sites)}</div>`;
+    return;
+  }
 
-    // Remove active class from all tabs and buttons
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-
-    // Map tab names to content IDs
-    const tabContentMap = {
-        'saved': 'savedSites',
-        'settings': 'settingsContent',
-        'add': 'addSiteForm'
-    };
-
-    const contentId = tabContentMap[tabName];
-    const buttonId = `${tabName}Tab`;
-
-    console.log('[QuickLinker] Content ID:', contentId, 'Button ID:', buttonId);
-
-    if (contentId && document.getElementById(contentId)) {
-        document.getElementById(contentId).classList.add('active');
-    } else {
-        console.error('[QuickLinker] Tab content not found:', contentId);
-    }
-
-    if (document.getElementById(buttonId)) {
-        document.getElementById(buttonId).classList.add('active');
-    } else {
-        console.error('[QuickLinker] Tab button not found:', buttonId);
-    }
-}
-
-async function loadSettingsAndRender() {
-    const result = await chrome.storage.sync.get(['settings', 'scanMode', 'closeOriginalTab']);
-    currentSettings = result.settings || [];
-    const scanMode = result.scanMode || 'bestMatch'; // Default to bestMatch
-    const closeOriginalTab = result.closeOriginalTab !== undefined ? result.closeOriginalTab : false; // Default to false
-
-    renderSites(currentSettings);
-    document.getElementById(scanMode + 'Mode').checked = true; // Set scan mode radio button
-    document.getElementById('closeOriginalTab').checked = closeOriginalTab; // Set close original tab checkbox
-
-    // Initialize drag-and-drop for sites
-    initSortable('sitesContainer', (newOrder) => {
-        currentSettings = newOrder.map(id => currentSettings.find(s => s.id === id));
-        saveSettings(currentSettings);
+  settings.forEach((site, index) => {
+    const version = site.versions?.[0] || {};
+    const baseUrl = version.baseUrl || site.baseUrl || '';
+    const row = document.createElement('div');
+    row.className = 'site-toggle-row';
+    row.innerHTML = `
+      <div class="site-toggle-meta">
+        <div class="site-toggle-name">${escapeHtml(site.name || '')}</div>
+        <div class="site-toggle-url">${escapeHtml(baseUrl)}</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" ${site.enabled === false ? '' : 'checked'} data-site-index="${index}">
+        <span></span>
+      </label>
+    `;
+    row.querySelector('input').addEventListener('change', async (event) => {
+      const updated = [...(currentSettings.settings || [])];
+      updated[index] = { ...updated[index], enabled: event.target.checked };
+      currentSettings.settings = updated;
+      await chrome.storage.sync.set({ settings: updated });
+      chrome.runtime.sendMessage({ action: 'updateContextMenu' });
     });
+    list.appendChild(row);
+  });
 }
 
-function renderSites(settings) {
-    const container = document.getElementById('sitesContainer');
-    container.innerHTML = '';
+function renderRecentSearches(history) {
+  const section = document.getElementById('recentSearchSection');
+  const list = document.getElementById('recentSearchList');
+  if (!section || !list) return;
+  const strings = I18N[currentLang] || I18N.en;
+  const items = normalizeSearchHistory(history).slice(0, 5);
+  list.innerHTML = '';
 
-    if (settings.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fi fi-rr-globe"></i>
-                <h3>尚未新增任何網站</h3>
-                <p>點擊上方「新增」標籤開始設定網站</p>
-            </div>
-        `;
-        return;
-    }
+  if (items.length === 0) {
+    section.style.display = 'block';
+    list.innerHTML = `<div class="empty-state">${escapeHtml(strings.no_recent)}</div>`;
+    return;
+  }
 
-    settings.forEach(site => {
-        const siteCard = document.createElement('div');
-        siteCard.className = 'site-card sortable-item';
-        siteCard.dataset.id = site.id;
-        siteCard.setAttribute('draggable', 'true'); // Enable dragging
-
-        // Escape HTML to prevent XSS
-        const escapeName = (str) => {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        };
-
-        siteCard.innerHTML = `
-            <div class="site-header">
-                <div class="site-name">
-                    <i class="fi fi-rr-globe"></i>
-                    ${escapeName(site.name)}
-                </div>
-                <div class="site-actions">
-                    <button class="icon-btn drag drag-handle" title="拖曳排序">
-                        <i class="fi fi-rr-apps-sort"></i>
-                    </button>
-                    <button class="icon-btn edit edit-site-btn" data-site-id="${site.id}" title="編輯">
-                        <i class="fi fi-rr-pencil"></i>
-                    </button>
-                    <button class="icon-btn delete delete-site-btn" data-site-id="${site.id}" title="刪除">
-                        <i class="fi fi-rr-trash-xmark"></i>
-                    </button>
-                </div>
-            </div>
-            ${site.versions ? site.versions.map(version => `
-                <div class="version-item">
-                    <div class="version-name">
-                        <i class="fi fi-rr-link"></i>
-                        ${escapeName(version.name)}
-                    </div>
-                </div>
-                <div class="version-url">${escapeName(version.baseUrl)}</div>
-            `).join('') : ''}
-        `;
-
-        container.appendChild(siteCard);
+  section.style.display = 'block';
+  items.forEach((item) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'recent-row';
+    row.innerHTML = `
+      <span>${escapeHtml(item.code)}</span>
+      <small>${escapeHtml(formatRelativeTime(item.timestamp))}</small>
+    `;
+    row.addEventListener('click', () => {
+      detectedCode = item.code;
+      const codeEl = document.getElementById('detectedCode');
+      if (codeEl) codeEl.textContent = item.code;
+      doSearch(item.code);
     });
+    list.appendChild(row);
+  });
 }
 
-function renderVersions(siteId, versions) {
-    const versionsContainer = document.querySelector(`.versions-list[data-site-id="${siteId}"]`);
-    versionsContainer.innerHTML = '';
+function formatRelativeTime(timestamp) {
+  const strings = I18N[currentLang] || I18N.en;
+  const seconds = Math.max(0, Math.floor((Date.now() - Number(timestamp || 0)) / 1000));
+  if (seconds < 60) return strings.just_now;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} ${strings.minutes_ago}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${strings.hours_ago}`;
+  return `${Math.floor(hours / 24)} ${strings.days_ago}`;
+}
 
-    if (versions.length === 0) {
-        versionsContainer.innerHTML = '<p>沒有版本。請新增。</p>';
-        return;
-    }
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value || '';
+  return div.innerHTML;
+}
 
-    versions.forEach(version => {
-        const versionDiv = document.createElement('div');
-        versionDiv.className = 'version-item sortable-item';
-        versionDiv.dataset.id = version.id;
-        versionDiv.innerHTML = `
-            <span class="drag-handle">☰</span>
-            <span class="version-name-display">${version.name}</span>
-            <span class="version-url-display">${version.baseUrl}</span>
-            <button class="edit-version-btn" title="編輯版本"><i class="fi fi-rr-edit"></i></button>
-            <button class="delete-version-btn" title="刪除版本"><i class="fi fi-rs-trash"></i></button>
-        `;
-        versionsContainer.appendChild(versionDiv);
+async function appendSearchHistory(code) {
+  const normalized = normalizeSearchCode(code);
+  if (!normalized) return;
+  const result = await chrome.storage.local.get(['searchHistory']);
+  const existing = normalizeSearchHistory(result.searchHistory);
+  const updated = [
+    { code: normalized.code, normalizedCode: normalized.key, timestamp: Date.now() },
+    ...existing.filter((item) => item.normalizedCode !== normalized.key)
+  ].slice(0, 20);
+  await chrome.storage.local.set({ searchHistory: updated });
+  renderRecentSearches(updated);
+}
 
-        // Add event listeners for version actions
-        versionDiv.querySelector('.edit-version-btn').addEventListener('click', (e) => editVersion(siteId, version.id));
-        versionDiv.querySelector('.delete-version-btn').addEventListener('click', (e) => deleteVersion(siteId, version.id));
+async function doSearch(code) {
+  if (!code) return;
+  await appendSearchHistory(code);
+
+  let currentHost = '';
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    currentHost = tab?.url ? new URL(tab.url).hostname : '';
+  } catch (error) {
+    currentHost = '';
+  }
+
+  const enabledSiteIds = [];
+  (currentSettings.settings || []).forEach((site) => {
+    if (site.enabled === false) return;
+    (site.versions || []).forEach((version) => enabledSiteIds.push(`${site.id}_${version.id}`));
+  });
+
+  chrome.runtime.sendMessage({
+    action: 'checkUrls',
+    code,
+    limitedSites: enabledSiteIds.length ? enabledSiteIds : null,
+    ...(currentHost ? { currentHost } : {})
+  }, (response) => {
+    const results = (response?.results || []).filter((item) => item.status === 'available');
+    results.forEach((item) => {
+      const resultUrl = item.finalUrl || item.url;
+      chrome.runtime.sendMessage({
+        action: 'openResultUrl',
+        url: resultUrl,
+        matchUrls: [item.finalUrl, item.url, ...(Array.isArray(item.matchUrls) ? item.matchUrls : [])]
+      });
     });
-
-    // Initialize drag-and-drop for versions
-    initSortable(versionsContainer.id || versionsContainer.className.split(' ')[0] + '[data-site-id="' + siteId + '"]', (newOrder) => {
-        const site = currentSettings.find(s => s.id === siteId);
-        if (site) {
-            site.versions = newOrder.map(id => site.versions.find(v => v.id === id));
-            saveSettings(currentSettings);
-        }
-    });
-}
-
-function generateUniqueId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-async function addSite() {
-    const nameInput = document.getElementById('newSiteName');
-    const baseUrlInput = document.getElementById('newSiteBaseUrl');
-    const name = nameInput.value.trim();
-    const baseUrl = baseUrlInput.value.trim();
-
-    if (name && baseUrl) {
-        const newSite = {
-            id: generateUniqueId(),
-            name: name,
-            versions: [{ id: generateUniqueId(), name: '預設', baseUrl: baseUrl }] // Add a default version
-        };
-        currentSettings.push(newSite);
-        await saveSettings(currentSettings);
-        nameInput.value = '';
-        baseUrlInput.value = '';
-        showTab('saved');
-        loadSettingsAndRender(); // Re-render to show new site
-    } else {
-        showFeedback('請填寫所有欄位。', 'error');
-    }
-}
-
-async function editSite(siteId) {
-    const site = currentSettings.find(s => s.id === siteId);
-    if (!site) return;
-
-    // Edit site name
-    const newName = prompt('編輯網站名稱:', site.name);
-    if (newName === null) return; // User cancelled
-
-    // Edit URL from the first version (default version)
-    let newUrl = null;
-    if (site.versions && site.versions.length > 0) {
-        newUrl = prompt('編輯基礎 URL:\n(使用 {} 作為搜尋關鍵字的佔位符)', site.versions[0].baseUrl);
-        if (newUrl === null) return; // User cancelled
-    }
-
-    // Apply changes
-    let hasChanges = false;
-    if (newName.trim() !== '' && newName !== site.name) {
-        site.name = newName.trim();
-        hasChanges = true;
-    }
-    if (newUrl && newUrl.trim() !== '' && site.versions[0]) {
-        site.versions[0].baseUrl = newUrl.trim();
-        hasChanges = true;
-    }
-
-    if (hasChanges) {
-        await saveSettings(currentSettings);
-        loadSettingsAndRender();
-    }
-}
-
-async function deleteSite(siteId) {
-    if (confirm('確定要刪除這個網站嗎？')) {
-        currentSettings = currentSettings.filter(s => s.id !== siteId);
-        await saveSettings(currentSettings);
-        loadSettingsAndRender();
-    }
-}
-
-async function addVersion(siteId) {
-    const siteDiv = document.querySelector(`.site-item[data-id="${siteId}"]`);
-    const nameInput = siteDiv.querySelector('.new-version-name');
-    const urlInput = siteDiv.querySelector('.new-version-url');
-    const name = nameInput.value.trim();
-    const baseUrl = urlInput.value.trim();
-
-    if (name && baseUrl) {
-        const site = currentSettings.find(s => s.id === siteId);
-        if (site) {
-            site.versions.push({ id: generateUniqueId(), name: name, baseUrl: baseUrl });
-            await saveSettings(currentSettings);
-            nameInput.value = '';
-            urlInput.value = '';
-            renderVersions(siteId, site.versions); // Re-render only versions for this site
-        }
-    } else {
-        showFeedback('請填寫所有版本欄位。', 'error');
-    }
-}
-
-async function editVersion(siteId, versionId) {
-    const site = currentSettings.find(s => s.id === siteId);
-    if (!site) return;
-    const version = site.versions.find(v => v.id === versionId);
-    if (!version) return;
-
-    const newName = prompt('編輯版本名稱:', version.name);
-    if (newName !== null && newName.trim() !== '') {
-        version.name = newName.trim();
-    }
-
-    const newUrl = prompt('編輯版本 URL:', version.baseUrl);
-    if (newUrl !== null && newUrl.trim() !== '') {
-        version.baseUrl = newUrl.trim();
-    }
-
-    if ((newName !== null && newName.trim() !== '') || (newUrl !== null && newUrl.trim() !== '')) {
-        await saveSettings(currentSettings);
-        renderVersions(siteId, site.versions);
-    }
-}
-
-async function deleteVersion(siteId, versionId) {
-    if (confirm('確定要刪除這個版本嗎？')) {
-        const site = currentSettings.find(s => s.id === siteId);
-        if (site) {
-            site.versions = site.versions.filter(v => v.id !== versionId);
-            await saveSettings(currentSettings);
-            renderVersions(siteId, site.versions);
-        }
-    }
-}
-
-async function saveSettings(settingsArray) {
-    await chrome.storage.sync.set({ settings: settingsArray });
-    chrome.runtime.sendMessage({ action: 'updateContextMenu' }); // Update context menu if settings change
-    showFeedback('設定已儲存！');
-}
-
-async function saveScanMode() {
-    const selectedMode = document.querySelector('input[name="scanMode"]:checked').value;
-    await chrome.storage.sync.set({ scanMode: selectedMode });
-    showFeedback('掃描模式已儲存！');
-}
-
-async function saveCloseOriginalTabSetting() {
-    const closeOriginalTab = document.getElementById('closeOriginalTab').checked;
-    await chrome.storage.sync.set({ closeOriginalTab: closeOriginalTab });
-    showFeedback('分頁管理設定已儲存！');
-}
-
-function exportSettings() {
-    const dataToExport = {
-        settings: currentSettings,
-        scanMode: document.querySelector('input[name="scanMode"]:checked').value
-    };
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'quicklinker_settings.json';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function importSettings(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (importedData && Array.isArray(importedData.settings)) {
-                    await saveSettings(importedData.settings);
-                    if (importedData.scanMode) {
-                        await chrome.storage.sync.set({ scanMode: importedData.scanMode });
-                    }
-                    loadSettingsAndRender();
-                    showFeedback('設定匯入成功！');
-                } else {
-                    showFeedback('無效的檔案格式。', 'error');
-                }
-            } catch (error) {
-                showFeedback('無法解析檔案。', 'error');
-                console.error('Import error:', error);
-            }
-        };
-        reader.readAsText(file);
-    }
-}
-
-function showFeedback(message, type = 'success') {
-    let feedback = document.getElementById('feedbackMessage');
-    if (!feedback) {
-        feedback = document.createElement('div');
-        feedback.id = 'feedbackMessage';
-        feedback.style.cssText = `
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            padding: 10px 20px; border-radius: 5px; color: white; font-size: 14px;
-            z-index: 1000; opacity: 0; transition: opacity 0.3s, background-color 0.3s;
-            white-space: nowrap;
-        `;
-        document.body.appendChild(feedback);
-    }
-
-    feedback.textContent = message;
-    feedback.style.backgroundColor = type === 'success' ? '#4CAF50' : '#f44336';
-    feedback.style.opacity = 1;
-
-    setTimeout(() => {
-        feedback.style.opacity = 0;
-    }, 3000);
-}
-
-// Basic Drag-and-Drop Implementation
-function initSortable(containerId, onDropCallback) {
-    const container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-    if (!container) {
-        console.error('Sortable container not found:', containerId);
-        return;
-    }
-
-    let draggedItem = null;
-
-    container.addEventListener('dragstart', (e) => {
-        if (e.target.classList.contains('sortable-item')) {
-            draggedItem = e.target;
-            e.dataTransfer.effectAllowed = 'move';
-            // Add a small delay to allow the browser to capture the drag image
-            setTimeout(() => {
-                draggedItem.classList.add('dragging');
-            }, 0);
-        }
-    });
-
-    container.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Allow drop
-        if (e.target.classList.contains('sortable-item') && draggedItem) {
-            const boundingBox = e.target.getBoundingClientRect();
-            const offset = boundingBox.y + (boundingBox.height / 2);
-            if (e.clientY < offset) {
-                container.insertBefore(draggedItem, e.target);
-            } else {
-                container.insertBefore(draggedItem, e.target.nextSibling);
-            }
-        }
-    });
-
-    container.addEventListener('dragend', () => {
-        if (draggedItem) {
-            draggedItem.classList.remove('dragging');
-            draggedItem = null;
-            const newOrder = Array.from(container.children).map(item => item.dataset.id);
-            onDropCallback(newOrder);
-        }
-    });
+  });
 }

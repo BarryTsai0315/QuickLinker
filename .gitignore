@@ -1,0 +1,62 @@
+# Spectra
+.spectra/
+openspec/.vector-search.db*
+
+# Environment & secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Claude Code local settings (may contain API keys / permissions)
+.claude/settings.local.json
+
+# Node (for future tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+dist/
+build/
+*.zip
+*.crx
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Agent 工作流檔案（僅本機使用，不進公開 repo）
+.claude/
+.agents/
+agent/
+skills-lock.json
+AGENTS.md
+CLAUDE.md
+.spectra.yaml
+
+# Spectra SDD 開發文件（僅本機使用，不進公開 repo）
+openspec/
+
+# Brag 影片產出
+brag-output*/
+
+# 原型檔
+prototype-*.html

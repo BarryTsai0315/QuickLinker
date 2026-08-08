@@ -1,42 +1,10 @@
-// =============================================
-// Rule Engine (New System)
-// =============================================
 
-// 全域快取規則，避免重複讀取 storage
-let cachedDomainRules = [];
-let rulesLoaded = false;
-
-/**
- * 檢查網域是否匹配規則（支持萬用字元 *）
- * @param {string} currentDomain - 當前網域 (例如: www.google.com)
- * @param {string} rulePattern - 規則模式 (例如: *.google.*, www.google.*)
- * @returns {boolean} 是否匹配
- */
-function matchDomain(currentDomain, rulePattern) {
-    // 如果沒有萬用字元，使用簡單的 includes 匹配
-    if (!rulePattern.includes('*')) {
-        return currentDomain.includes(rulePattern);
-    }
-
-    // 將萬用字元模式轉換為正則表達式
-    // 1. 轉義特殊字元（除了 *）
-    const escapedPattern = rulePattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-    // 2. 將 * 轉換為 .*（匹配任意字元）
-    const regexPattern = '^' + escapedPattern.replace(/\*/g, '.*') + '$';
-    const regex = new RegExp(regexPattern);
-
-    return regex.test(currentDomain);
-}
-
-async function loadDomainRules() {
-    if (rulesLoaded) return cachedDomainRules;
-
-    const result = await chrome.storage.sync.get(['domainRules']);
-    cachedDomainRules = result.domainRules || [];
-    rulesLoaded = true;
-    console.log('[QuickLinker] Loaded domain rules:', cachedDomainRules);
-    return cachedDomainRules;
-}
+let devMode = false;
+chrome.storage.sync.get(['devMode'], (r) => { devMode = Boolean(r.devMode); });
+chrome.storage.onChanged.addListener((changes, ns) => {
+  if (ns === 'sync' && 'devMode' in changes) devMode = Boolean(changes.devMode.newValue);
+});
+function dbg(...args) { if (devMode) console.log(...args); }
 
 /**
  * 根據網域提取內容（寫死邏輯，針對常見網站優化）
@@ -44,21 +12,40 @@ async function loadDomainRules() {
  * @returns {string|null} 提取的內容
  */
 function extractCodeByDomain(domain) {
-    console.log('[QuickLinker] Extracting code for domain:', domain);
+    dbg('[QuickLinker] Extracting code for domain:', domain);
+
+    // MissAV - auto-generate normal and uncensored variants
+    if (domain.includes('missav.ai')) {
+        const urlMatch = location.pathname.match(/\/(?:[a-z]{2}\/)?([a-z0-9]+-\d+)(?:-uncensored-leak)?/i);
+        if (urlMatch && urlMatch[1]) {
+            const code = urlMatch[1].toLowerCase();
+            const result = { code, missavVariants: ['', '-uncensored-leak'] };
+            dbg('[QuickLinker] MissAV URL match:', result);
+            return result;
+        }
+
+        const titleMatch = document.title.match(/([a-z0-9]+-\d+)/i);
+        if (titleMatch && titleMatch[1]) {
+            const code = titleMatch[1].toLowerCase();
+            const result = { code, missavVariants: ['', '-uncensored-leak'] };
+            dbg('[QuickLinker] MissAV title match:', result);
+            return result;
+        }
+    }
 
     // JavDB - 影片番號提取
     if (domain.includes('javdb.com')) {
         // 方法1: 從URL提取 /v/ABC-123
         const urlMatch = location.pathname.match(/\/v\/([A-Z0-9]+-\d+)/i);
         if (urlMatch && urlMatch[1]) {
-            console.log('[QuickLinker] JavDB URL match:', urlMatch[1]);
+            dbg('[QuickLinker] JavDB URL match:', urlMatch[1]);
             return urlMatch[1];
         }
 
         // 方法2: 從標題提取
         const titleMatch = document.title.match(/([A-Z0-9]+-\d+)/i);
         if (titleMatch && titleMatch[1]) {
-            console.log('[QuickLinker] JavDB title match:', titleMatch[1]);
+            dbg('[QuickLinker] JavDB title match:', titleMatch[1]);
             return titleMatch[1];
         }
 
@@ -66,7 +53,7 @@ function extractCodeByDomain(domain) {
         const element = document.querySelector('.video-meta-panel .value');
         if (element) {
             const text = element.textContent.trim();
-            console.log('[QuickLinker] JavDB element match:', text);
+            dbg('[QuickLinker] JavDB element match:', text);
             return text;
         }
     }
@@ -76,7 +63,7 @@ function extractCodeByDomain(domain) {
         const element = document.querySelector('#video_id .text');
         if (element) {
             const text = element.textContent.trim();
-            console.log('[QuickLinker] JavLibrary match:', text);
+            dbg('[QuickLinker] JavLibrary match:', text);
             return text;
         }
     }
@@ -85,7 +72,7 @@ function extractCodeByDomain(domain) {
     if (domain.includes('github.com')) {
         const urlMatch = location.pathname.match(/\/issues\/(\d+)/);
         if (urlMatch && urlMatch[1]) {
-            console.log('[QuickLinker] GitHub issue match:', urlMatch[1]);
+            dbg('[QuickLinker] GitHub issue match:', urlMatch[1]);
             return urlMatch[1];
         }
     }
@@ -94,60 +81,24 @@ function extractCodeByDomain(domain) {
     if (domain.includes('amazon.')) {
         const urlMatch = location.pathname.match(/\/dp\/([A-Z0-9]{10})/);
         if (urlMatch && urlMatch[1]) {
-            console.log('[QuickLinker] Amazon ASIN match:', urlMatch[1]);
+            dbg('[QuickLinker] Amazon ASIN match:', urlMatch[1]);
             return urlMatch[1];
         }
     }
 
     // FC2PPVDB - FC2 編號提取
-    if (domain.includes('fc2ppvdb.com')) {
+    if (domain.includes('fc2cmadb.com')) {
         const element = document.querySelector('span.text-white.ml-2');
         if (element) {
             const text = element.textContent.trim();
-            console.log('[QuickLinker] FC2PPVDB match:', text);
+            dbg('[QuickLinker] FC2PPVDB match:', text);
             return text;
         }
     }
 
     // 其他網站：使用通用邏輯
-    console.log('[QuickLinker] No specific extractor, trying generic methods');
+    dbg('[QuickLinker] No specific extractor, trying generic methods');
     return null;
-}
-
-async function extractCodeByRules() {
-    const domainRules = await loadDomainRules();
-    const currentDomain = location.hostname;
-
-    console.log('[QuickLinker] Current domain:', currentDomain);
-
-    // 找到匹配當前網域的規則（支持萬用字元）
-    const matchedRule = domainRules.find(rule =>
-        rule.enabled && matchDomain(currentDomain, rule.domain)
-    );
-
-    if (!matchedRule) {
-        console.log('[QuickLinker] No matching rule found');
-        return null;
-    }
-
-    console.log('[QuickLinker] Matched rule:', matchedRule);
-
-    // 使用寫死的提取邏輯
-    const extractedCode = extractCodeByDomain(currentDomain);
-
-    if (extractedCode) {
-        return {
-            code: extractedCode,
-            sites: matchedRule.sites
-        };
-    }
-
-    // 如果專門的提取邏輯失敗，使用 legacy fallback
-    console.log('[QuickLinker] Domain-specific extraction failed, using fallback');
-    return {
-        code: null,  // 將由 getCodeLegacy() 處理
-        sites: matchedRule.sites
-    };
 }
 
 // =============================================
@@ -179,45 +130,93 @@ async function getCode() {
     const currentDomain = location.hostname;
 
     // 【寫死邏輯】：JavDB、JavLibrary、FC2PPVDB 自動啟用，不需要規則配置
-    const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2ppvdb.com'];
+    const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav.ai'];
     const isHardcodedDomain = hardcodedDomains.some(domain => currentDomain.includes(domain));
 
     if (isHardcodedDomain) {
-        console.log('[QuickLinker] Hardcoded domain detected:', currentDomain);
+        dbg('[QuickLinker] Hardcoded domain detected:', currentDomain);
         const extractedCode = extractCodeByDomain(currentDomain);
         if (extractedCode) {
-            console.log('[QuickLinker] Hardcoded extraction successful:', extractedCode);
+            dbg('[QuickLinker] Hardcoded extraction successful:', extractedCode);
+            if (typeof extractedCode === 'object') {
+                return { ...extractedCode, sites: null };
+            }
             return { code: extractedCode, sites: null }; // sites: null = 搜尋所有網站
         }
-        console.log('[QuickLinker] Hardcoded extraction failed');
+        // hardcoded 網站提取失敗時，直接結束（不 fallback 到 legacy，避免抓到頁面上無關元素）
+        dbg('[QuickLinker] Hardcoded extraction failed, skipping fallback');
+        return null;
     }
 
-    // 優先使用規則提取（其他網站）
-    const ruleResult = await extractCodeByRules();
-    if (ruleResult) {
-        // 如果規則匹配但 code 為 null（auto 模式），使用 legacy fallback
-        if (ruleResult.code === null) {
-            const legacyCode = getCodeLegacy();
-            if (legacyCode) {
-                console.log('[QuickLinker] Using auto mode with legacy extraction:', legacyCode);
-                return { code: legacyCode, sites: ruleResult.sites };
-            }
-            // 如果 legacy 也失敗，返回 null 但保留 sites 信息
-            return null;
-        }
-
-        console.log('[QuickLinker] Using rule-based extraction');
-        return ruleResult;
-    }
-
-    // 備用：使用舊邏輯（無規則匹配時）
+    // 備用：使用舊邏輯
     const legacyCode = getCodeLegacy();
     if (legacyCode) {
-        console.log('[QuickLinker] Using legacy extraction:', legacyCode);
+        dbg('[QuickLinker] Using legacy extraction:', legacyCode);
         return { code: legacyCode, sites: null };
     }
 
     return null;
+}
+
+async function recordSearchHistory(code, sourceUrl) {
+    const normalized = normalizeSearchCode(code);
+    if (!normalized) return;
+    const result = await chrome.storage.local.get('searchHistory');
+    const deduped = (result.searchHistory || []).filter(entry => normalizeSearchCode(entry.code)?.key !== normalized.key);
+    const updated = [{ code: normalized.code, normalizedCode: normalized.key, timestamp: Date.now(), sourceUrl }, ...deduped].slice(0, 20);
+    await chrome.storage.local.set({ searchHistory: updated });
+    dbg('[QuickLinker] History recorded:', normalized.code);
+}
+
+function normalizeSearchCode(value) {
+    const code = String(value || '')
+        .normalize('NFKC')
+        .trim()
+        .toUpperCase()
+        .replace(/[\s_]+/g, '-')
+        .replace(/[^A-Z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    const key = code.replace(/[^A-Z0-9]/g, '');
+    if (!/[A-Z]/.test(key) || !/[0-9]/.test(key)) return null;
+    return { code, key };
+}
+
+function detectLang() {
+    const lang = navigator.language || 'en';
+    if (lang === 'zh-TW' || lang === 'zh-HK') return 'zh-TW';
+    if (lang.startsWith('zh')) return 'zh-CN';
+    if (lang.startsWith('ja')) return 'ja';
+    if (lang.startsWith('ko')) return 'ko';
+    return 'en';
+}
+
+function resolveLang(pref) {
+    return pref === 'auto' ? detectLang() : pref;
+}
+
+function getUncensoredLabel(language) {
+    return ({
+        'zh-TW': '無碼',
+        'zh-CN': '无码',
+        ja: '無修正',
+        ko: '무수정',
+        en: 'Uncensored'
+    })[resolveLang(language)] || 'Uncensored';
+}
+
+async function isFloatingButtonEnabled() {
+    const { showFloatingButton = true } = await chrome.storage.sync.get(['showFloatingButton']);
+    return showFloatingButton !== false;
+}
+
+function getSiteBaseUrls(site) {
+    if (Array.isArray(site.versions) && site.versions.length > 0) {
+        return site.versions
+            .map(version => version.baseUrl)
+            .filter(Boolean);
+    }
+    return site.baseUrl ? [site.baseUrl] : [];
 }
 
 function extractCodeFromText(text) {
@@ -249,7 +248,7 @@ const observer = new MutationObserver(() => {
         if (extractResult && !container) {
             _codeFound = true;
             observer.disconnect(); // 偵測到後停止監聽 DOM，節省資源
-            console.log('[QuickLinker] Code found via observer, disconnecting');
+            dbg('[QuickLinker] Code found via observer, disconnecting');
             createFloatingButton(extractResult);
         } else if (!extractResult && container) {
             container.remove();
@@ -262,17 +261,13 @@ observer.observe(document.body, { childList: true, subtree: true });
 // 監聽 URL 變化（處理 SPA 頁面切換或 history pushState）
 setInterval(() => {
     if (location.href !== _lastCheckedUrl) {
-        console.log('[QuickLinker] URL changed:', _lastCheckedUrl, '->', location.href);
+        dbg('[QuickLinker] URL changed:', _lastCheckedUrl, '->', location.href);
         _lastCheckedUrl = location.href;
         _codeFound = false;
 
         // 移除舊容器
         const container = document.querySelector('.ql-floating-container');
         if (container) container.remove();
-
-        // 清除規則快取
-        rulesLoaded = false;
-        cachedDomainRules = [];
 
         // 重新啟動 observer
         observer.observe(document.body, { childList: true, subtree: true });
@@ -297,22 +292,35 @@ setInterval(() => {
 // Floating Button Creation & Smart Scan
 // =============================================
 
-async function updateFloatingButtons(code, limitedSites = null) {
+async function updateFloatingButtons(code, limitedSites = null, urls = null) {
     const subButtonsContainer = document.querySelector('.ql-sub-buttons');
     if (!subButtonsContainer) return;
 
     // Clear existing buttons
     subButtonsContainer.innerHTML = '';
 
-    console.log('[QuickLinker] Checking URLs for code:', code, 'limitedSites:', limitedSites);
+    dbg('[QuickLinker] Checking URLs for code:', code, 'limitedSites:', limitedSites, 'urls:', urls);
 
-    // Trigger Smart Scan with code and optional limitedSites
     const response = await chrome.runtime.sendMessage({
         action: 'checkUrls',
         code: code,
-        limitedSites: limitedSites  // 新增參數
+        limitedSites: limitedSites,
+        urls: urls,
+        currentHost: location.hostname
     });
-    updateButtonStates(response.results);
+
+    // 只渲染已確認的結果；unknown 與訊息組裝錯誤不建立按鈕
+    let results = (response.results || []).filter(result => result.status === 'available' || result.status === 'unavailable');
+
+    // fullScan 模式下只渲染確認可用（available）的按鈕，避免堆出大量 404 廢按鈕
+    const { scanMode } = await chrome.storage.sync.get(['scanMode']);
+    const effectiveScanMode = urls ? 'fullScan' : scanMode;
+    if (effectiveScanMode === 'fullScan') {
+        results = results.filter(result => result.status === 'available');
+        dbg('[QuickLinker] fullScan: filtered to available only,', results.length, 'buttons');
+    }
+
+    updateButtonStates(results);
 }
 
 async function createFloatingButton(extractResult) {
@@ -320,27 +328,62 @@ async function createFloatingButton(extractResult) {
     // 1. 舊格式: createFloatingButton('ABC-123')
     // 2. 新格式: createFloatingButton({ code: 'ABC-123', sites: [...] })
 
-    let code, limitedSites;
+    if (!(await isFloatingButtonEnabled())) {
+        const container = document.querySelector('.ql-floating-container');
+        if (container) container.remove();
+        return;
+    }
+
+    let code, limitedSites, missavVariants;
 
     if (typeof extractResult === 'string') {
         // 舊格式（向下相容）
         code = extractResult;
         limitedSites = null;
-        console.log('[QuickLinker] Using legacy format');
+        dbg('[QuickLinker] Using legacy format');
     } else if (extractResult && extractResult.code) {
         // 新格式
         code = extractResult.code;
         limitedSites = extractResult.sites;
-        console.log('[QuickLinker] Using new format with limitedSites:', limitedSites);
+        missavVariants = extractResult.missavVariants;
+        dbg('[QuickLinker] Using new format with limitedSites:', limitedSites, 'missavVariants:', missavVariants);
     } else {
         console.error('[QuickLinker] Invalid extractResult format:', extractResult);
         return;
     }
 
+    if (!code) {
+        console.error('[QuickLinker] Empty code, skipping floating button creation');
+        return;
+    }
+
+    recordSearchHistory(code, location.href).catch(error => {
+        console.error('[QuickLinker] Failed to record history:', error);
+    });
+
+    const { language = 'auto' } = await chrome.storage.sync.get(['language']);
+    const uncensoredLabel = getUncensoredLabel(language);
     let container = document.querySelector('.ql-floating-container');
+    const missavUrls = Array.isArray(missavVariants)
+        ? missavVariants.map((suffix) => ({
+            id: suffix ? 'missav_uncensored_leak' : 'missav_normal',
+            url: suffix
+                ? `https://missav.ai/${encodeURIComponent(code)}${suffix}`
+                : `https://missav.ai/${encodeURIComponent(code)}`,
+            matchUrls: suffix
+                ? [
+                    `https://missav.ai/${encodeURIComponent(code)}${suffix}`,
+                    `https://missav.ai/dm2/${encodeURIComponent(code)}${suffix}`
+                ]
+                : [],
+            siteName: suffix ? `MissAV - ${uncensoredLabel}` : 'MissAV',
+            label: suffix ? uncensoredLabel : ''
+        }))
+        : null;
+
     if (container) {
         // If container already exists, just update its buttons
-        await updateFloatingButtons(code, limitedSites);
+        await updateFloatingButtons(code, limitedSites, missavUrls);
         return;
     }
 
@@ -374,7 +417,7 @@ async function createFloatingButton(extractResult) {
             container.style.bottom = 'auto';
             container.style.left = safeLeft + 'px';
             container.style.top = safeTop + 'px';
-            console.log('[QuickLinker] Restored button position:', safeLeft, safeTop);
+            dbg('[QuickLinker] Restored button position:', safeLeft, safeTop);
         } catch (e) {
             console.error('[QuickLinker] Failed to restore button position:', e);
         }
@@ -411,7 +454,7 @@ async function createFloatingButton(extractResult) {
     });
 
     // Now populate and update the buttons
-    await updateFloatingButtons(code, limitedSites);
+    await updateFloatingButtons(code, limitedSites, missavUrls);
 }
 
 function updateButtonStates(results) {
@@ -438,18 +481,42 @@ function updateButtonStates(results) {
         if (faviconUrl) {
             subButton.style.backgroundImage = `url(${faviconUrl})`;
         }
+        if (result.label) {
+            const label = document.createElement('span');
+            label.className = 'ql-version-label';
+            label.textContent = result.label;
+            subButton.appendChild(label);
+        }
 
         switch (result.status) {
             case 'available':
                 subButton.classList.add('status-available');
-                subButton.href = result.finalUrl; // Use the final URL after redirects
+                subButton.href = result.finalUrl || result.url; // Use the final URL after redirects
+                subButton.target = '_blank'; // Default new-tab behavior for non-left-click interactions
+                subButton.addEventListener('click', (event) => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                        return;
+                    }
+                    event.preventDefault();
+                    if (subButton.target !== '_blank') {
+                        location.href = subButton.href;
+                        return;
+                    }
+                    chrome.runtime.sendMessage({
+                        action: 'openResultUrl',
+                        url: subButton.href,
+                        matchUrls: [result.finalUrl, result.url, ...(Array.isArray(result.matchUrls) ? result.matchUrls : [])]
+                    }, (response) => {
+                        if (chrome.runtime.lastError || !response?.ok) {
+                            window.open(subButton.href, '_blank');
+                        }
+                    });
+                });
 
                 // Set target based on closeOriginalTab setting
                 chrome.storage.sync.get(['closeOriginalTab'], (setting) => {
                     if (setting.closeOriginalTab) {
                         subButton.target = '_self'; // Navigate in current tab
-                    } else {
-                        subButton.target = '_blank'; // Open in new tab
                     }
                 });
                 break;
@@ -496,8 +563,14 @@ style.textContent = `
     position: absolute; /* 脫離 flex 流，不影響主按鈕位置 */
     gap: 10px;
   }
-  .ql-sub-button { background-color: #f8f9fa; cursor: pointer; }
+  .ql-sub-button { background-color: #f8f9fa; cursor: pointer; position: relative; }
   .ql-sub-button:hover { transform: scale(1.15); }
+  .ql-version-label {
+    position: absolute; top: -6px; right: -8px;
+    min-width: 22px; padding: 1px 4px; border-radius: 7px;
+    background: #111827; color: #ffffff; font-size: 10px; line-height: 14px;
+    text-align: center; pointer-events: none;
+  }
 
   /* Status Styles */
   .status-loading { border-color: #ffc107; /* Yellow */ animation: pulse 1.5s infinite; }
@@ -527,14 +600,14 @@ document.head.appendChild(style);
 
 // Listen for storage changes to rebuild
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && (changes.settings || changes.domainRules)) {
-    // 清除規則快取
-    rulesLoaded = false;
-    cachedDomainRules = [];
-
+  if (namespace === 'sync' && (changes.settings || changes.showFloatingButton)) {
     // 重新提取並創建按鈕
     const container = document.querySelector('.ql-floating-container');
     if (container) container.remove();
+
+    if (changes.showFloatingButton && changes.showFloatingButton.newValue === false) {
+        return;
+    }
 
     (async () => {
         const extractResult = await getCode();
@@ -552,13 +625,15 @@ document.addEventListener('mouseup', () => {
             const settings = result.settings || [];
             const currentHostname = window.location.hostname;
             const isConfiguredSite = settings.some(site => {
-                try {
-                    const siteHostname = new URL(site.baseUrl.replace('{}', '')).hostname;
-                    return currentHostname.includes(siteHostname);
-                } catch (e) {
-                    console.error("Error parsing site URL:", site.baseUrl, e);
-                    return false;
-                }
+                return getSiteBaseUrls(site).some(baseUrl => {
+                    try {
+                        const siteHostname = new URL(baseUrl.replace('{}', '')).hostname;
+                        return currentHostname.includes(siteHostname);
+                    } catch (e) {
+                        console.error("Error parsing site URL:", baseUrl, e);
+                        return false;
+                    }
+                });
             });
 
             // If it's a configured site, do not trigger global detection
@@ -625,7 +700,7 @@ document.addEventListener('mousedown', (e) => {
             left: finalRect.left,
             top: finalRect.top
         }));
-        console.log('[QuickLinker] Saved button position:', finalRect.left, finalRect.top);
+        dbg('[QuickLinker] Saved button position:', finalRect.left, finalRect.top);
     }
 
     document.addEventListener('mousemove', onMouseMove);
@@ -634,4 +709,14 @@ document.addEventListener('mousedown', (e) => {
     container.ondragstart = function() {
         return false;
     };
+});
+
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_CODE') {
+    getCode()
+      .then((result) => sendResponse({ code: result?.code || null }))
+      .catch(() => sendResponse({ code: null }));
+    return true;
+  }
 });

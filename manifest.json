@@ -1,32 +1,41 @@
 {
     "manifest_version": 3,
     "name": "QuickLinker",
-    "version": "3.4.0",
+    "version": "3.10.0",
     "permissions": [
-      "contextMenus",
-      "storage",
-      "activeTab",
-      "scripting"
+        "contextMenus",
+        "storage",
+        "tabs"
     ],
     "background": {
-      "service_worker": "src/background/background.js"
+        "service_worker": "src/background/background.js"
     },
     "action": {
-      "default_popup": "src/popup/popup.html"
+        "default_popup": "src/popup/popup.html"
+    },
+    "options_ui": {
+        "page": "src/options/options.html",
+        "open_in_tab": true
     },
     "icons": {
-      "16": "icons/icon16.png",
-      "64": "icons/icon64.png",
-      "128": "icons/icon128.png",
-      "256": "icons/icon256.png",
-      "512": "icons/icon512.png"
+        "16": "icons/icon16.png",
+        "64": "icons/icon64.png",
+        "128": "icons/icon128.png",
+        "256": "icons/icon256.png",
+        "512": "icons/icon512.png"
     },
     "description": "Smart link aggregator for quick cross-site search. Auto-detect content, check availability, search multiple sites instantly.",
     "content_scripts": [
-      {
-        "matches": ["*://*/*"],
-        "css": ["src/content/content.css"],
-        "js": ["src/content/content.js"]
-      }
+        {
+            "matches": [
+                "*://*/*"
+            ],
+            "css": [
+                "src/content/content.css"
+            ],
+            "js": [
+                "src/content/content.js"
+            ]
+        }
     ]
-  }
+}
