@@ -376,6 +376,14 @@ async function doSearch(code) {
   if (!code) return;
   await appendSearchHistory(code);
 
+  let currentHost = '';
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    currentHost = tab?.url ? new URL(tab.url).hostname : '';
+  } catch (error) {
+    currentHost = '';
+  }
+
   const enabledSiteIds = [];
   (currentSettings.settings || []).forEach((site) => {
     if (site.enabled === false) return;
@@ -385,7 +393,8 @@ async function doSearch(code) {
   chrome.runtime.sendMessage({
     action: 'checkUrls',
     code,
-    limitedSites: enabledSiteIds.length ? enabledSiteIds : null
+    limitedSites: enabledSiteIds.length ? enabledSiteIds : null,
+    ...(currentHost ? { currentHost } : {})
   }, (response) => {
     const results = (response?.results || []).filter((item) => item.status === 'available');
     results.forEach((item) => {

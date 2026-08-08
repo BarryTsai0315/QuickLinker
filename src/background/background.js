@@ -100,7 +100,7 @@ function applyCodeTemplate(template, code) {
     '{dmm}': dmm
   };
 
-  return String(template ?? '').replace(TEMPLATE_TOKEN_PATTERN, (token) => replacements[token]);
+  return String(template ?? '').replace(TEMPLATE_TOKEN_PATTERN, (token) => encodeURIComponent(replacements[token]));
 }
 
 function getTemplateHostname(template) {
@@ -128,27 +128,36 @@ const TAB_GROUP_ID_NONE = -1;
 
 async function getCachedUrl(url, cacheEnabled = enableCache) {
   if (!cacheEnabled) return null;
-  const key = 'uc_' + url;
-  const result = await chrome.storage.session.get(key);
-  const entry = result[key];
-  if (!entry) {
-    dbg('[QuickLinker] Cache MISS:', url);
+  try {
+    const key = 'uc_' + url;
+    const result = await chrome.storage.session.get(key);
+    const entry = result[key];
+    if (!entry) {
+      dbg('[QuickLinker] Cache MISS:', url);
+      return null;
+    }
+    if (Date.now() - entry.timestamp > CACHE_TTL) {
+      dbg('[QuickLinker] Cache EXPIRED:', url);
+      await chrome.storage.session.remove(key);
+      return null;
+    }
+    dbg('[QuickLinker] Cache HIT:', url, '→', entry.available ? 'available' : 'unavailable');
+    return entry;
+  } catch (error) {
+    dbg('[QuickLinker] Cache READ failed:', url, error.message);
     return null;
   }
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
-    dbg('[QuickLinker] Cache EXPIRED:', url);
-    await chrome.storage.session.remove(key);
-    return null;
-  }
-  dbg('[QuickLinker] Cache HIT:', url, '→', entry.available ? 'available' : 'unavailable');
-  return entry;
 }
 
 async function setCachedUrl(url, available, finalUrl, cacheEnabled = enableCache) {
   if (!cacheEnabled) return;
-  const key = 'uc_' + url;
-  await chrome.storage.session.set({ [key]: { available, finalUrl, timestamp: Date.now() } });
-  dbg('[QuickLinker] Cache WRITE:', url, '→', available ? 'available' : 'unavailable');
+  try {
+    const key = 'uc_' + url;
+    await chrome.storage.session.set({ [key]: { available, finalUrl, timestamp: Date.now() } });
+    dbg('[QuickLinker] Cache WRITE:', url, '→', available ? 'available' : 'unavailable');
+  } catch (error) {
+    dbg('[QuickLinker] Cache WRITE failed:', url, error.message);
+  }
 }
 
 function classifyProbeResponse(response, requestedUrl) {
@@ -477,7 +486,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       if (site && site.enabled !== false && info.selectionText) {
         const version = getSiteVersions(site).find(v => v.id === versionId);
         if (version) {
-          const url = version.baseUrl.replace('{}', encodeURIComponent(info.selectionText));
+          const url = applyCodeTemplate(version.baseUrl, info.selectionText);
           openResultUrl(url).catch((error) => {
             console.error('[QuickLinker] Failed to open result URL:', error);
           });
@@ -667,65 +676,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       // 建立待檢查清單
       const tasks = messageUrls || [];
-      if (!messageUrls) {
-        for (const site of settings || []) {
-          if (site.enabled === false) continue;
-          for (const version of getSiteVersions(site)) {
-            const siteVersionId = `${site.id}_${version.id}`;
-            if (limitedSites && !limitedSites.includes(siteVersionId)) {
-              continue;
-            }
-            const baseUrl = String(version.baseUrl ?? '');
-            if (excludeCurrentSite && currentHost) {
-              const targetHost = getTemplateHostname(baseUrl);
-              if (targetHost && isSameSiteHost(currentHost, targetHost)) {
-                dbg('[QuickLinker] Skipping same-site version:', site.name, version.name, targetHost);
-                continue;
-              }
-            }
-            // 僅「標準 missav 來源」（baseUrl 樣板為 https://missav.ai/{}）才自動展開 normal/uncensored 變體；
-            // 其餘 missav 來源（如 fc2-ppv-{}）走一般流程，保留原始 baseUrl 前綴，避免前綴遺失與重複 URL
-            let isStandardMissavBase = false;
-            try {
-              const usesOnlyUnchangedToken = baseUrl.includes('{}') && !/\{(?:lower|upper|nodash|dmm)\}/.test(baseUrl);
-              const templateUrl = new URL(applyCodeTemplate(baseUrl, '__QL_CODE__'));
-              isStandardMissavBase = usesOnlyUnchangedToken
-                && templateUrl.hostname === 'missav.ai'
-                && templateUrl.pathname === '/__QL_CODE__';
-            } catch (error) {
-              isStandardMissavBase = false;
-            }
-            if (isStandardMissavBase) {
-              const missavCode = encodeURIComponent(code.toLowerCase());
-              dbg('[QuickLinker] Expanding MissAV variants:', code);
-              tasks.push({
-                id: `${siteVersionId}_normal`,
-                url: `https://missav.ai/${missavCode}`,
-                siteName: site.name,
-                label: ''
-              });
-              tasks.push({
-                id: `${siteVersionId}_uncensored_leak`,
-                url: `https://missav.ai/${missavCode}-uncensored-leak`,
-                matchUrls: [
-                  `https://missav.ai/${missavCode}-uncensored-leak`,
-                  `https://missav.ai/dm2/${missavCode}-uncensored-leak`
-                ],
-                siteName: `${site.name} - ${uncensoredLabel}`,
-                label: uncensoredLabel
-              });
-              continue;
-            }
-            const fullUrl = applyCodeTemplate(baseUrl, code);
-            tasks.push({ id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` });
+      for (const site of settings || []) {
+        if (site.enabled === false) continue;
+        for (const version of getSiteVersions(site)) {
+          const siteVersionId = `${site.id}_${version.id}`;
+          if (limitedSites && !limitedSites.includes(siteVersionId)) {
+            continue;
           }
+          const baseUrl = String(version.baseUrl ?? '');
+          // 僅「標準 missav 來源」（baseUrl 樣板為 https://missav.ai/{}）才自動展開 normal/uncensored 變體；
+          // 其餘 missav 來源（如 fc2-ppv-{}）走一般流程，保留原始 baseUrl 前綴，避免前綴遺失與重複 URL
+          let isStandardMissavBase = false;
+          try {
+            const usesOnlyUnchangedToken = baseUrl.includes('{}') && !/\{(?:lower|upper|nodash|dmm)\}/.test(baseUrl);
+            const templateUrl = new URL(applyCodeTemplate(baseUrl, '__QL_CODE__'));
+            isStandardMissavBase = usesOnlyUnchangedToken
+              && templateUrl.hostname === 'missav.ai'
+              && templateUrl.pathname === '/__QL_CODE__';
+          } catch (error) {
+            isStandardMissavBase = false;
+          }
+          if (isStandardMissavBase) {
+            const missavCode = encodeURIComponent(code.toLowerCase());
+            dbg('[QuickLinker] Expanding MissAV variants:', code);
+            tasks.push({
+              id: `${siteVersionId}_normal`,
+              url: `https://missav.ai/${missavCode}`,
+              siteName: site.name,
+              label: ''
+            });
+            tasks.push({
+              id: `${siteVersionId}_uncensored_leak`,
+              url: `https://missav.ai/${missavCode}-uncensored-leak`,
+              matchUrls: [
+                `https://missav.ai/${missavCode}-uncensored-leak`,
+                `https://missav.ai/dm2/${missavCode}-uncensored-leak`
+              ],
+              siteName: `${site.name} - ${uncensoredLabel}`,
+              label: uncensoredLabel
+            });
+            continue;
+          }
+          const fullUrl = applyCodeTemplate(baseUrl, code);
+          tasks.push({ id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` });
         }
       }
+
+      // 傳入的網址清單與設定站台可能組出相同 URL（如 MissAV 頁面），先去重再排除同站
+      const seenTaskUrls = new Set();
+      const scanTasks = tasks.filter((task) => {
+        if (seenTaskUrls.has(task.url)) {
+          dbg('[QuickLinker] Skipping duplicate URL:', task.url);
+          return false;
+        }
+        seenTaskUrls.add(task.url);
+        if (excludeCurrentSite && currentHost) {
+          const host = getTemplateHostname(task.url);
+          if (host && isSameSiteHost(currentHost, host)) {
+            dbg('[QuickLinker] Skipping same-site task:', task.url);
+            return false;
+          }
+        }
+        return true;
+      });
 
       if (effectiveScanMode === 'bestMatch') {
         // bestMatch：循序檢查，找到第一個可用即停止
         const results = [];
-        for (const urlInfo of tasks) {
+        for (const urlInfo of scanTasks) {
           try {
             const result = await getAvailabilityResult(urlInfo, cacheEnabled);
             results.push(result);
@@ -741,8 +759,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ results });
       } else {
         // fullScan：平行檢查所有網站，大幅加速
-        dbg('[QuickLinker] Full scan: checking', tasks.length, 'URLs in parallel');
-        const results = await Promise.all(tasks.map(async (urlInfo) => {
+        dbg('[QuickLinker] Full scan: checking', scanTasks.length, 'URLs in parallel');
+        const results = await Promise.all(scanTasks.map(async (urlInfo) => {
           try {
             return await getAvailabilityResult(urlInfo, cacheEnabled);
           } catch (error) {
