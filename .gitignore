@@ -43,14 +43,20 @@ desktop.ini
 *.log
 logs/
 
-# Agent skill 安裝產物（本專案只追蹤自己用的 spectra skills）
-# 未排除的話 spectra archive 會把這些檔案全寫進 spec 的 @trace
-.claude/skills/*
-!.claude/skills/spectra-*/
-.agents/skills/*
-!.agents/skills/spectra-*/
+# Agent 工作流檔案（僅本機使用，不進公開 repo）
+.claude/
+.agents/
 agent/
 skills-lock.json
+AGENTS.md
+CLAUDE.md
+.spectra.yaml
+
+# Spectra SDD 開發文件（僅本機使用，不進公開 repo）
+openspec/
 
 # Brag 影片產出
 brag-output*/
+
+# 原型檔
+prototype-*.html
