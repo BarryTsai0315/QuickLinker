@@ -83,6 +83,42 @@ function getSiteVersions(site) {
   return [];
 }
 
+const TEMPLATE_TOKEN_PATTERN = /\{\}|\{lower\}|\{upper\}|\{nodash\}|\{dmm\}/g;
+
+function applyCodeTemplate(template, code) {
+  const value = String(code ?? '');
+  const alphanumeric = value.replace(/[^A-Za-z0-9]/g, '');
+  const dmmMatch = value.match(/^([A-Za-z]+)[^A-Za-z0-9]*([0-9]+)$/);
+  const dmm = dmmMatch
+    ? `${dmmMatch[1].toLowerCase()}${dmmMatch[2].padStart(5, '0')}`
+    : alphanumeric.toLowerCase();
+  const replacements = {
+    '{}': value,
+    '{lower}': value.toLowerCase(),
+    '{upper}': value.toUpperCase(),
+    '{nodash}': alphanumeric,
+    '{dmm}': dmm
+  };
+
+  return String(template ?? '').replace(TEMPLATE_TOKEN_PATTERN, (token) => replacements[token]);
+}
+
+function getTemplateHostname(template) {
+  try {
+    const resolvedTemplate = String(template ?? '').replace(TEMPLATE_TOKEN_PATTERN, '__QL_CODE__');
+    return new URL(resolvedTemplate).hostname;
+  } catch (error) {
+    return null;
+  }
+}
+
+function isSameSiteHost(firstHost, secondHost) {
+  const first = String(firstHost || '').toLowerCase().replace(/^www\./, '');
+  const second = String(secondHost || '').toLowerCase().replace(/^www\./, '');
+  if (!first || !second) return false;
+  return first === second || first.endsWith(`.${second}`) || second.endsWith(`.${first}`);
+}
+
 // =============================================
 // URL 可用性 Cache（chrome.storage.session，TTL 30 分鐘）
 // =============================================
@@ -90,29 +126,93 @@ function getSiteVersions(site) {
 const CACHE_TTL = 30 * 60 * 1000;
 const TAB_GROUP_ID_NONE = -1;
 
-async function getCachedUrl(url) {
-  if (!enableCache) return null;
+async function getCachedUrl(url, cacheEnabled = enableCache) {
+  if (!cacheEnabled) return null;
   const key = 'uc_' + url;
   const result = await chrome.storage.session.get(key);
   const entry = result[key];
   if (!entry) {
-    dbg('[QuickLinker Cache] MISS:', url);
+    dbg('[QuickLinker] Cache MISS:', url);
     return null;
   }
   if (Date.now() - entry.timestamp > CACHE_TTL) {
-    dbg('[QuickLinker Cache] EXPIRED:', url);
-    chrome.storage.session.remove(key);
+    dbg('[QuickLinker] Cache EXPIRED:', url);
+    await chrome.storage.session.remove(key);
     return null;
   }
-  dbg('[QuickLinker Cache] HIT:', url, '→', entry.available ? 'available' : 'unavailable');
+  dbg('[QuickLinker] Cache HIT:', url, '→', entry.available ? 'available' : 'unavailable');
   return entry;
 }
 
-async function setCachedUrl(url, available, finalUrl) {
-  if (!enableCache) return;
+async function setCachedUrl(url, available, finalUrl, cacheEnabled = enableCache) {
+  if (!cacheEnabled) return;
   const key = 'uc_' + url;
   await chrome.storage.session.set({ [key]: { available, finalUrl, timestamp: Date.now() } });
-  dbg('[QuickLinker Cache] WRITE:', url, '→', available ? 'available' : 'unavailable');
+  dbg('[QuickLinker] Cache WRITE:', url, '→', available ? 'available' : 'unavailable');
+}
+
+function classifyProbeResponse(response, requestedUrl) {
+  if (response.status >= 200 && response.status < 300) {
+    try {
+      const redirectedToRoot = response.redirected
+        && new URL(response.url).pathname === '/'
+        && new URL(requestedUrl).pathname !== '/';
+      return redirectedToRoot ? 'unavailable' : 'available';
+    } catch (error) {
+      return 'available';
+    }
+  }
+  if (response.status === 404 || response.status === 410) return 'unavailable';
+  return 'unknown';
+}
+
+async function runAvailabilityProbe(url, method) {
+  try {
+    const response = await fetch(url, { method, cache: 'no-cache' });
+    const status = classifyProbeResponse(response, url);
+    const finalUrl = response.url || url;
+
+    if (method === 'GET' && response.body) {
+      try {
+        await response.body.cancel();
+      } catch (error) {
+        dbg('[QuickLinker] Failed to cancel GET response body:', url, error.message);
+      }
+    }
+
+    dbg('[QuickLinker] Probe result:', method, url, '→', response.status, status, '| finalUrl:', finalUrl, '| redirected:', response.redirected);
+    return { status, finalUrl };
+  } catch (error) {
+    dbg('[QuickLinker] Probe failed:', method, url, error.message);
+    return { status: 'unknown', finalUrl: url };
+  }
+}
+
+async function probeUrlAvailability(url) {
+  let result = await runAvailabilityProbe(url, 'HEAD');
+  if (result.status === 'unknown') {
+    dbg('[QuickLinker] Retrying unknown probe with GET:', url);
+    result = await runAvailabilityProbe(url, 'GET');
+  }
+  return result;
+}
+
+async function getAvailabilityResult(urlInfo, cacheEnabled) {
+  const cached = await getCachedUrl(urlInfo.url, cacheEnabled);
+  if (cached) {
+    dbg('[QuickLinker] Cache hit:', urlInfo.url);
+    return {
+      ...urlInfo,
+      status: cached.available ? 'available' : 'unavailable',
+      finalUrl: cached.finalUrl || urlInfo.url
+    };
+  }
+
+  const probe = await probeUrlAvailability(urlInfo.url);
+  if (probe.status !== 'unknown') {
+    await setCachedUrl(urlInfo.url, probe.status === 'available', probe.finalUrl, cacheEnabled);
+  }
+  return { ...urlInfo, status: probe.status, finalUrl: probe.finalUrl };
 }
 
 function normalizeResultUrl(url) {
@@ -496,7 +596,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         id: generateUniqueId(),
         name: 'JavDB',
         versions: [
-          { id: generateUniqueId(), name: '預設', baseUrl: 'https://javdb.com/v/{}' }
+          { id: generateUniqueId(), name: '預設', baseUrl: 'https://javdb.com/search?q={}&f=all' }
         ]
       }
     ];
@@ -547,16 +647,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // 來自 content.js 的智慧掃描請求
   if (message.action === 'checkUrls') {
     (async () => {
-      const { settings, scanMode, language } = await chrome.storage.sync.get(['settings', 'scanMode', 'language']);
+      const stored = await chrome.storage.sync.get(['settings', 'scanMode', 'language', 'excludeCurrentSite', 'enableCache']);
+      const settings = stored.settings;
+      const scanMode = stored.scanMode; // 不帶預設，維持既有掃描模式取捨規則
+      const language = stored.language;
+      const excludeCurrentSite = stored.excludeCurrentSite !== false;
+      const cacheEnabled = stored.enableCache !== false;
       const code = message.code;
       const limitedSites = message.limitedSites;
       const messageUrls = Array.isArray(message.urls) ? message.urls : null;
+      const currentHost = typeof message.currentHost === 'string' ? message.currentHost : '';
       const effectiveScanMode = messageUrls ? 'fullScan' : scanMode;
       const uncensoredLabel = getUncensoredLabel(language || 'auto');
 
-      dbg('[QuickLinker Background] Checking URLs for code:', code);
-      dbg('[QuickLinker Background] Limited sites:', limitedSites);
-      dbg('[QuickLinker Background] Message URLs:', messageUrls);
+      dbg('[QuickLinker] Checking URLs for code:', code);
+      dbg('[QuickLinker] Current host:', currentHost || '(missing)');
+      dbg('[QuickLinker] Limited sites:', limitedSites);
+      dbg('[QuickLinker] Message URLs:', messageUrls);
 
       // 建立待檢查清單
       const tasks = messageUrls || [];
@@ -568,18 +675,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (limitedSites && !limitedSites.includes(siteVersionId)) {
               continue;
             }
+            const baseUrl = String(version.baseUrl ?? '');
+            if (excludeCurrentSite && currentHost) {
+              const targetHost = getTemplateHostname(baseUrl);
+              if (targetHost && isSameSiteHost(currentHost, targetHost)) {
+                dbg('[QuickLinker] Skipping same-site version:', site.name, version.name, targetHost);
+                continue;
+              }
+            }
             // 僅「標準 missav 來源」（baseUrl 樣板為 https://missav.ai/{}）才自動展開 normal/uncensored 變體；
             // 其餘 missav 來源（如 fc2-ppv-{}）走一般流程，保留原始 baseUrl 前綴，避免前綴遺失與重複 URL
             let isStandardMissavBase = false;
             try {
-              const templateUrl = new URL(version.baseUrl.replace('{}', '__QL_CODE__'));
-              isStandardMissavBase = templateUrl.hostname === 'missav.ai' && templateUrl.pathname === '/__QL_CODE__';
+              const usesOnlyUnchangedToken = baseUrl.includes('{}') && !/\{(?:lower|upper|nodash|dmm)\}/.test(baseUrl);
+              const templateUrl = new URL(applyCodeTemplate(baseUrl, '__QL_CODE__'));
+              isStandardMissavBase = usesOnlyUnchangedToken
+                && templateUrl.hostname === 'missav.ai'
+                && templateUrl.pathname === '/__QL_CODE__';
             } catch (error) {
               isStandardMissavBase = false;
             }
             if (isStandardMissavBase) {
               const missavCode = encodeURIComponent(code.toLowerCase());
-              dbg('[QuickLinker Background] Expanding MissAV variants:', code);
+              dbg('[QuickLinker] Expanding MissAV variants:', code);
               tasks.push({
                 id: `${siteVersionId}_normal`,
                 url: `https://missav.ai/${missavCode}`,
@@ -598,7 +716,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
               continue;
             }
-            const fullUrl = version.baseUrl.replace('{}', code);
+            const fullUrl = applyCodeTemplate(baseUrl, code);
             tasks.push({ id: siteVersionId, url: fullUrl, siteName: `${site.name} - ${version.name}` });
           }
         }
@@ -608,65 +726,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // bestMatch：循序檢查，找到第一個可用即停止
         const results = [];
         for (const urlInfo of tasks) {
-          const cached = await getCachedUrl(urlInfo.url);
-          if (cached) {
-            dbg('[QuickLinker Background] Cache hit:', urlInfo.url);
-            const result = { ...urlInfo, status: cached.available ? 'available' : 'unavailable', finalUrl: cached.finalUrl || urlInfo.url };
-            results.push(result);
-            if (cached.available) {
-              sendResponse({ results });
-              return;
-            }
-            continue;
-          }
-          dbg('[QuickLinker Background] Checking URL:', urlInfo.url);
           try {
-            const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            dbg('[QuickLinker Fetch]', urlInfo.url, '→ status:', response.status, '| finalUrl:', response.url, '| redirected:', response.redirected);
-            if (response.status === 404) {
-              dbg('[QuickLinker Fetch] UNAVAILABLE (404):', urlInfo.url);
-              await setCachedUrl(urlInfo.url, false, urlInfo.url);
-              results.push({ ...urlInfo, status: 'unavailable' });
-            } else {
-              dbg('[QuickLinker Fetch] AVAILABLE (non-404):', urlInfo.url);
-              await setCachedUrl(urlInfo.url, true, response.url);
-              results.push({ ...urlInfo, status: 'available', finalUrl: response.url });
-              dbg('[QuickLinker Background] Best match found, sending response');
+            const result = await getAvailabilityResult(urlInfo, cacheEnabled);
+            results.push(result);
+            if (result.status === 'available') {
               sendResponse({ results });
               return;
             }
           } catch (error) {
+            dbg('[QuickLinker] Failed to assemble availability result:', urlInfo.url, error.message);
             results.push({ ...urlInfo, status: 'error', error: error.message });
           }
         }
         sendResponse({ results });
       } else {
         // fullScan：平行檢查所有網站，大幅加速
-        dbg('[QuickLinker Background] Full scan: checking', tasks.length, 'URLs in parallel');
+        dbg('[QuickLinker] Full scan: checking', tasks.length, 'URLs in parallel');
         const results = await Promise.all(tasks.map(async (urlInfo) => {
-          const cached = await getCachedUrl(urlInfo.url);
-          if (cached) {
-            dbg('[QuickLinker Background] Cache hit:', urlInfo.url);
-            return { ...urlInfo, status: cached.available ? 'available' : 'unavailable', finalUrl: cached.finalUrl || urlInfo.url };
-          }
           try {
-            const response = await fetch(urlInfo.url, { method: 'HEAD', cache: 'no-cache' });
-            dbg('[QuickLinker Fetch]', urlInfo.url, '→ status:', response.status, '| finalUrl:', response.url, '| redirected:', response.redirected);
-            if (response.status === 404) {
-              dbg('[QuickLinker Fetch] UNAVAILABLE (404):', urlInfo.url);
-              await setCachedUrl(urlInfo.url, false, urlInfo.url);
-              return { ...urlInfo, status: 'unavailable' };
-            } else {
-              dbg('[QuickLinker Fetch] AVAILABLE (non-404):', urlInfo.url);
-              await setCachedUrl(urlInfo.url, true, response.url);
-              return { ...urlInfo, status: 'available', finalUrl: response.url };
-            }
+            return await getAvailabilityResult(urlInfo, cacheEnabled);
           } catch (error) {
-            dbg('[QuickLinker Fetch] ERROR:', urlInfo.url, error.message);
+            dbg('[QuickLinker] Failed to assemble availability result:', urlInfo.url, error.message);
             return { ...urlInfo, status: 'error', error: error.message };
           }
         }));
-        dbg('[QuickLinker Background] Sending final results:', results.length, 'items');
+        dbg('[QuickLinker] Sending final results:', results.length, 'items');
         sendResponse({ results });
       }
     })();

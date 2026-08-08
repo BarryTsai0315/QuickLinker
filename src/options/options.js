@@ -15,11 +15,13 @@ const I18N = {
     scan_best:'最佳結果', scan_best_desc:'找到第一個可用連結後立即停止，速度更快。',
     scan_full:'完整掃描', scan_full_desc:'平行掃描所有網站，顯示全部結果。',
     close_tab:'搜尋後關閉原始分頁', close_tab_desc:'開啟搜尋結果後自動關閉原本頁面',
+    exclude_current_site_label:'排除目前網站', exclude_current_site_desc:'不顯示與目前頁面相同網站的搜尋結果',
     float_btn:'顯示浮動按鈕', float_btn_desc:'在偵測到番號的頁面顯示快捷按鈕',
     update_notify:'版本更新通知', update_notify_desc:'更新後顯示新功能提示',
     add_site:'新增網站', edit_site:'修改', save_site:'儲存', cancel:'取消', delete_site:'刪除', delete_confirm:'確定要刪除此網站？',
-    site_name_placeholder:'網站名稱', base_url_placeholder:'搜尋網址，使用 {} 代表番號',
-    base_url_error:'Base URL 必須包含 {}。', invalid_settings_file:'設定檔格式不正確。',
+    site_name_placeholder:'網站名稱', base_url_placeholder:'搜尋網址，使用支援的 token 代表番號',
+    url_token_help:'可用 token：{} 原始番號、{lower} 小寫、{upper} 大寫、{nodash} 去除非英數字元、{dmm} 字母小寫＋數字左補零至 5 位。',
+    base_url_error:'Base URL 必須包含一個支援的 token。', invalid_settings_file:'設定檔格式不正確。',
     import_complete:'匯入完成。', import_failed:'匯入失敗。', clear_confirm:'確定要清除全部設定？',
     io_desc:'將設定備份或還原到另一台裝置',
     export:'匯出設定', import:'匯入設定', danger:'危險區域',
@@ -44,11 +46,13 @@ const I18N = {
     scan_best:'最佳结果', scan_best_desc:'找到第一个可用链接后立即停止，速度更快。',
     scan_full:'完整扫描', scan_full_desc:'并行扫描所有网站，显示全部结果。',
     close_tab:'搜索后关闭原标签页', close_tab_desc:'打开搜索结果后自动关闭原页面',
+    exclude_current_site_label:'排除当前网站', exclude_current_site_desc:'不显示与当前页面相同网站的搜索结果',
     float_btn:'显示悬浮按钮', float_btn_desc:'在检测到番号的页面显示快捷按钮',
     update_notify:'版本更新通知', update_notify_desc:'更新后显示新功能提示',
     add_site:'添加网站', edit_site:'修改', save_site:'保存', cancel:'取消', delete_site:'删除', delete_confirm:'确定要删除此网站？',
-    site_name_placeholder:'网站名称', base_url_placeholder:'搜索网址，使用 {} 代表番号',
-    base_url_error:'Base URL 必须包含 {}。', invalid_settings_file:'设置文件格式不正确。',
+    site_name_placeholder:'网站名称', base_url_placeholder:'搜索网址，使用支持的 token 代表番号',
+    url_token_help:'可用 token：{} 原始番号、{lower} 小写、{upper} 大写、{nodash} 移除非字母数字字符、{dmm} 字母小写＋数字左补零至 5 位。',
+    base_url_error:'Base URL 必须包含一个支持的 token。', invalid_settings_file:'设置文件格式不正确。',
     import_complete:'导入完成。', import_failed:'导入失败。', clear_confirm:'确定要清除全部设置？',
     io_desc:'将设置备份或还原到另一台设备',
     export:'导出设置', import:'导入设置', danger:'危险区域',
@@ -73,11 +77,13 @@ const I18N = {
     scan_best:'Best Match', scan_best_desc:'Stop at first available link. Faster.',
     scan_full:'Full Scan', scan_full_desc:'Scan all sites in parallel. Shows all results.',
     close_tab:'Close original tab after search', close_tab_desc:'Auto-close original page when search results open',
+    exclude_current_site_label:'Exclude current site', exclude_current_site_desc:'Hide results that point to the same site as the current page',
     float_btn:'Show floating button', float_btn_desc:'Display shortcut button on detected pages',
     update_notify:'Update notifications', update_notify_desc:'Show new features after an update',
     add_site:'Add Site', edit_site:'Edit', save_site:'Save', cancel:'Cancel', delete_site:'Delete', delete_confirm:'Delete this site?',
-    site_name_placeholder:'Site name', base_url_placeholder:'Search URL, use {} for the code',
-    base_url_error:'Base URL must include {}.', invalid_settings_file:'Invalid settings file.',
+    site_name_placeholder:'Site name', base_url_placeholder:'Search URL, use a supported token for the code',
+    url_token_help:'Tokens: {} unchanged, {lower} lowercase, {upper} uppercase, {nodash} alphanumeric only, {dmm} lowercase letters plus digits padded to 5 places.',
+    base_url_error:'Base URL must include a supported token.', invalid_settings_file:'Invalid settings file.',
     import_complete:'Import complete.', import_failed:'Import failed.', clear_confirm:'Clear all settings?',
     io_desc:'Backup or restore your settings to another device',
     export:'Export Settings', import:'Import Settings', danger:'Danger Zone',
@@ -102,11 +108,13 @@ const I18N = {
     scan_best:'ベストマッチ', scan_best_desc:'最初の利用可能なリンクで停止。高速。',
     scan_full:'フルスキャン', scan_full_desc:'全サイトを並行スキャンし、全結果を表示。',
     close_tab:'検索後に元のタブを閉じる', close_tab_desc:'検索結果を開いたら元のページを自動的に閉じる',
+    exclude_current_site_label:'現在のサイトを除外', exclude_current_site_desc:'現在のページと同じサイトへの検索結果を表示しません',
     float_btn:'フローティングボタンを表示', float_btn_desc:'検出されたページにショートカットボタンを表示',
     update_notify:'アップデート通知', update_notify_desc:'更新後に新機能を表示',
     add_site:'サイトを追加', edit_site:'編集', save_site:'保存', cancel:'キャンセル', delete_site:'削除', delete_confirm:'このサイトを削除しますか？',
-    site_name_placeholder:'サイト名', base_url_placeholder:'検索URL。コード部分に {} を使用',
-    base_url_error:'Base URL には {} が必要です。', invalid_settings_file:'設定ファイルの形式が正しくありません。',
+    site_name_placeholder:'サイト名', base_url_placeholder:'検索URL。コード部分に対応 token を使用',
+    url_token_help:'使用可能な token：{} は元のコード、{lower} は小文字、{upper} は大文字、{nodash} は英数字のみ、{dmm} は小文字＋数字を 5 桁までゼロ埋め。',
+    base_url_error:'Base URL には対応 token が必要です。', invalid_settings_file:'設定ファイルの形式が正しくありません。',
     import_complete:'インポート完了。', import_failed:'インポートに失敗しました。', clear_confirm:'すべての設定を削除しますか？',
     io_desc:'設定を別のデバイスにバックアップまたは復元',
     export:'設定をエクスポート', import:'設定をインポート', danger:'危険ゾーン',
@@ -131,11 +139,13 @@ const I18N = {
     scan_best:'최적 결과', scan_best_desc:'첫 번째 가능한 링크에서 중지. 더 빠릅니다.',
     scan_full:'전체 스캔', scan_full_desc:'모든 사이트를 병렬 스캔하여 전체 결과 표시.',
     close_tab:'검색 후 원래 탭 닫기', close_tab_desc:'검색 결과를 열면 원래 페이지를 자동으로 닫기',
+    exclude_current_site_label:'현재 사이트 제외', exclude_current_site_desc:'현재 페이지와 같은 사이트를 가리키는 검색 결과를 숨깁니다',
     float_btn:'플로팅 버튼 표시', float_btn_desc:'감지된 페이지에 단축키 버튼 표시',
     update_notify:'업데이트 알림', update_notify_desc:'업데이트 후 새 기능 표시',
     add_site:'사이트 추가', edit_site:'수정', save_site:'저장', cancel:'취소', delete_site:'삭제', delete_confirm:'이 사이트를 삭제할까요?',
-    site_name_placeholder:'사이트 이름', base_url_placeholder:'검색 URL, 코드 위치에 {} 사용',
-    base_url_error:'Base URL에는 {}가 포함되어야 합니다.', invalid_settings_file:'설정 파일 형식이 올바르지 않습니다.',
+    site_name_placeholder:'사이트 이름', base_url_placeholder:'검색 URL, 코드 위치에 지원 token 사용',
+    url_token_help:'사용 가능한 token: {} 원본, {lower} 소문자, {upper} 대문자, {nodash} 영숫자만, {dmm} 소문자와 숫자를 5자리까지 0으로 채움.',
+    base_url_error:'Base URL에는 지원되는 token이 포함되어야 합니다.', invalid_settings_file:'설정 파일 형식이 올바르지 않습니다.',
     import_complete:'가져오기가 완료되었습니다.', import_failed:'가져오기에 실패했습니다.', clear_confirm:'모든 설정을 지울까요?',
     io_desc:'다른 기기에 설정을 백업하거나 복원',
     export:'설정 내보내기', import:'설정 가져오기', danger:'위험 구역',
@@ -145,6 +155,8 @@ const I18N = {
     dev_mode:'개발자 모드', dev_mode_desc:'활성화하면 Service Worker 콘솔에 상세 로그가 표시됩니다',
   }
 };
+
+const URL_TOKEN_PATTERN = /\{(?:lower|upper|nodash|dmm)?\}/;
 
 function detectLang() {
   const locale = navigator.language || 'en';
@@ -182,6 +194,7 @@ const DEFAULT_SETTINGS = {
   settings: [],
   scanMode: 'bestMatch',
   closeOriginalTab: false,
+  excludeCurrentSite: true,
   enableCache: true,
   showFloatingButton: true,
   showUpdateNotification: false,
@@ -259,11 +272,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.querySelectorAll('[data-lang-mode]').forEach((item) => item.classList.toggle('active', item === button));
       await setSyncStorage({ language: optionsState.language });
       applyLang(optionsState.language);
+      renderSitesList(optionsState.settings);
     });
   });
 
   [
     ['closeOriginalTab', 'closeOriginalTab'],
+    ['excludeCurrentSite', 'excludeCurrentSite'],
     ['enableCache', 'enableCache'],
     ['showFloatingButton', 'showFloatingButton'],
     ['showUpdateNotification', 'showUpdateNotification'],
@@ -300,6 +315,7 @@ function renderSitesList(settings) {
   }
 
   const strings = I18N[resolveLang(optionsState.language)] || I18N.en;
+  const tokenHelp = document.getElementById('siteTokenHelp')?.textContent || '';
   settings.forEach((site, index) => {
     const versions = Array.isArray(site.versions) ? site.versions : [{ name: 'Default', baseUrl: site.baseUrl || '' }];
     const card = document.createElement('div');
@@ -321,6 +337,7 @@ function renderSitesList(settings) {
       <form class="form-grid site-edit-form" data-edit-form="${index}" hidden>
         <input type="text" data-edit-name="${index}" value="${escapeAttr(site.name || '')}" placeholder="${escapeAttr(strings.site_name_placeholder)}" required>
         <input type="text" data-edit-url="${index}" value="${escapeAttr(versions[0]?.baseUrl || '')}" placeholder="${escapeAttr(strings.base_url_placeholder)}" required>
+        <div class="setting-desc">${escapeHtml(tokenHelp)}</div>
         <div class="inline-error" data-edit-error="${index}"></div>
         <div class="button-row">
           <button type="submit" class="primary-btn">${escapeHtml(strings.save_site)}</button>
@@ -349,7 +366,7 @@ async function updateSite(event, index) {
   const name = nameInput.value.trim();
   const baseUrl = urlInput.value.trim();
 
-  if (!baseUrl.includes('{}')) {
+  if (!URL_TOKEN_PATTERN.test(baseUrl)) {
     error.textContent = strings.base_url_error;
     return;
   }
@@ -385,7 +402,7 @@ async function submitNewSite(event) {
   const name = nameInput.value.trim();
   const baseUrl = urlInput.value.trim();
 
-  if (!baseUrl.includes('{}')) {
+  if (!URL_TOKEN_PATTERN.test(baseUrl)) {
     const strings = I18N[resolveLang(optionsState.language)] || I18N.en;
     error.textContent = strings.base_url_error;
     return;

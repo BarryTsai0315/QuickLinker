@@ -241,6 +241,7 @@
             <form id="newSiteForm" class="form-grid">
               <input id="newSiteName" type="text" data-i18n-placeholder="site_name_placeholder" required>
               <input id="newSiteBaseUrl" type="text" data-i18n-placeholder="base_url_placeholder" required>
+              <div id="siteTokenHelp" class="setting-desc" data-i18n="url_token_help"></div>
               <div id="siteFormError" class="inline-error"></div>
               <div class="button-row">
                 <button type="submit" class="primary-btn" data-i18n="add_site"></button>
@@ -298,6 +299,13 @@
               <div class="setting-desc" data-i18n="close_tab_desc"></div>
             </div>
             <label class="switch"><input id="closeOriginalTab" type="checkbox"><span></span></label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label" data-i18n="exclude_current_site_label"></div>
+              <div class="setting-desc" data-i18n="exclude_current_site_desc"></div>
+            </div>
+            <label class="switch"><input id="excludeCurrentSite" type="checkbox"><span></span></label>
           </div>
           <div class="setting-row">
             <div>

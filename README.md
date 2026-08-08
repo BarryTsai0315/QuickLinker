@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-![Version](https://img.shields.io/badge/version-3.8.1-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-3.9.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -33,13 +33,15 @@
 
 當你瀏覽內建支援的網站時，擴充功能會自動偵測頁面中的番號或 ID，並在右下角顯示浮動 `+` 按鈕。
 
-1. 點擊 `+` 展開子按鈕，顯示所有已設定的搜尋網站
-2. 每個按鈕以顏色即時標示連結狀態：
-   - **綠色邊框** — 連結可用（HTTP 2xx）
-   - **紅色邊框** — 連結不存在（HTTP 404 或 soft 404）
-   - **橘色邊框** — 請求失敗（網路錯誤）
-   - **黃色動畫** — 檢查中
+1. 點擊 `+` 展開子按鈕，顯示已設定的搜尋網站
+2. 每個按鈕以顏色標示連結狀態：
+   - **綠色邊框** — 連結確認可用
+   - **紅色邊框** — 連結確認不存在（不可點擊，僅「最佳結果」模式會顯示）
 3. 點擊任一按鈕即跳轉；若該番號已有開啟的分頁，自動聚焦該分頁而非開新分頁
+
+**只顯示確認過的結果**：無法確認可用性的網站（被 Cloudflare 之類的防護擋下、站台暫時故障、不支援探測方法）不會產生按鈕。你看到的每一顆按鈕，都是實際探測過的結果，不會出現點下去才發現是死連結的情況。詳見 [URL 可用性判斷機制](#url-可用性判斷機制)。
+
+**排除目前網站**：預設不顯示指向當前所在網站的結果。例如在 JavDB 頁面上展開按鈕時，不會再出現一顆連回 JavDB 的按鈕。可在選項頁關閉此行為。
 
 **拖曳**：按住浮動按鈕可自由移動，位置會自動儲存（`localStorage`），下次開啟同域名頁面自動復原。
 
@@ -55,27 +57,49 @@
 
 ### 搜尋網站管理
 
-新增網站時，在「搜尋網址」欄位用 `{}` 作為關鍵字佔位符：
+新增網站時，在「搜尋網址」欄位用 token 標示關鍵字的位置：
 
 ```
-https://javdb.com/v/{}
+https://javdb.com/search?q={}&f=all
 https://github.com/search?q={}
 https://www.amazon.com/s?k={}
 ```
 
 一個網站可設定多個「版本」（例如同一平台的不同語言站點），各版本在右鍵選單以「網站名稱 - 版本名稱」顯示。
 
+#### 可用的 token
+
+不同網站對同一個番號的寫法未必相同。除了原樣代入的 `{}` 之外，還可以選用會先做轉換再代入的 token，不需要改任何程式碼就能接上格式不同的網站：
+
+| Token | 轉換方式 | `IPZZ-914` 代入後 |
+|-------|----------|------------------|
+| `{}` | 原樣代入 | `IPZZ-914` |
+| `{lower}` | 全部轉小寫 | `ipzz-914` |
+| `{upper}` | 全部轉大寫 | `IPZZ-914` |
+| `{nodash}` | 移除所有非英數字元 | `IPZZ914` |
+| `{dmm}` | DMM 品番格式：字母小寫，數字左補零至 5 位 | `ipzz00914` |
+
+`{dmm}` 適用於 DMM 系的網站。例如 javtrailers 把 `PRED-820` 寫成 `pred00820`，設定成這樣即可：
+
+```
+https://javtrailers.com/video/{dmm}
+```
+
+若番號拆不出「字母段 + 數字段」（例如 `FC2PPV`），`{dmm}` 會退回輸出小寫去符號的形式（`fc2ppv`），不會產出錯誤網址。數字段本身已達 5 位以上時不補零也不截斷。
+
 ### 掃描模式
 
-| 模式 | 行為 | 適合情境 |
-|------|------|----------|
-| **最佳結果** | 找到第一個可用連結後立即停止 | 只想快速跳轉 |
-| **完整掃描** | 平行檢查所有網站，顯示全部結果 | 需要比較哪些網站有資源 |
+| 模式 | 行為 | 顯示的按鈕 | 適合情境 |
+|------|------|------------|----------|
+| **最佳結果** | 循序檢查，找到第一個可用連結後立即停止 | 可用（綠）與確認不存在（紅） | 只想快速跳轉 |
+| **完整掃描** | 平行檢查所有網站 | 僅可用（綠） | 需要比較哪些網站有資源 |
 
 ### 其他設定
 
+- **排除目前網站**：不顯示指向當前所在網站的搜尋結果（預設開啟）
 - **搜尋後關閉原始分頁**：跳轉後自動關閉來源頁面
 - **顯示浮動按鈕**：關閉後只保留右鍵選單功能
+- **啟用搜尋快取**：快取探測結果 30 分鐘，加速重複搜尋；關閉後每次重新探測
 - **顯示語言**：支援繁體中文、簡體中文、日文、韓文、英文，或跟隨瀏覽器
 - **深色模式**：深色 / 淺色 / 跟隨系統
 - **匯入 / 匯出設定**：備份或移轉設定到另一台裝置
@@ -106,19 +130,36 @@ QuickLinker/
 
 ### URL 可用性判斷機制
 
-可用性檢查由 Service Worker 執行（繞過 CORS 限制）：
+可用性探測由 Service Worker 執行（繞過 CORS 限制），先發 HEAD 請求，依回應狀態分為三態：
 
-```
-fetch(url, { method: 'HEAD', cache: 'no-cache' })
-```
+| 探測結果 | 判定 | 說明 |
+|----------|------|------|
+| 2xx | `available` | 資源存在 |
+| 404 / 410 | `unavailable` | 資源不存在或已永久移除 |
+| 403 / 405 / 5xx / 網路錯誤 | `unknown` | 這次探測無法下結論 |
 
-判斷邏輯：
-- `response.status === 404` → `unavailable`
-- `new URL(response.url).pathname.startsWith('/404')` → soft 404，視為 `unavailable`
-- 其餘 2xx / 3xx → `available`
-- 網路錯誤（fetch throw）→ `error`
+**GET 重試**：判為 `unknown` 時，以 GET 對同一網址重試一次並重新套用上表。取得狀態碼後立即取消回應主體的讀取，不會把整個頁面內容留在記憶體。重試後仍是 `unknown` 就維持該結論，同一次檢查不再發送第三個請求。
 
-結果存入 `chrome.storage.session` 快取，TTL 30 分鐘，避免對同一 URL 重複請求。
+**重導終點退化**：部分網站找不到資源時不回 404，而是 302 導回首頁，跟隨重導後拿到 200。因此在判為 `available` 之前多一道檢查——若回應發生過重導、最終網址的路徑是根路徑、而原請求路徑不是根路徑，改判為 `unavailable`。
+
+**渲染規則**：只有 `available` 與 `unavailable` 會產生按鈕，`unknown` 完全不渲染。「完整掃描」模式再進一步只保留 `available`。
+
+**快取**：`available` 與 `unavailable` 的結果存入 `chrome.storage.session`，TTL 30 分鐘。`unknown` 不寫入快取，讓下次檢查能重新探測，避免把暫時性的阻擋固化成 30 分鐘的錯誤結論。關閉「啟用搜尋快取」設定後不讀也不寫。
+
+### 排除當前站台
+
+Content Script 送出可用性檢查請求時會附帶當前頁面的 hostname。Service Worker 組裝待檢查清單時，解析每個網站版本樣板的目標 hostname 與之比對，命中即跳過該版本。
+
+同站判定規則：兩邊轉小寫並去除開頭的 `www.` 之後，相等或一方以「`.` 加另一方」結尾即視為同站。
+
+| 當前頁面 | 網站版本目標 | 是否同站 |
+|----------|--------------|----------|
+| `javdb.com` | `javdb.com` | 是 |
+| `www.javdb.com` | `javdb.com` | 是 |
+| `sub.missav.ai` | `missav.ai` | 是 |
+| `javdb.com` | `javdbmirror.com` | 否（尾綴必須以 `.` 為界） |
+
+樣板無法解析為合法網址時不執行排除，該版本照常進入清單，避免一筆壞設定連帶影響其他網站。請求未帶 hostname 時（例如 Content Script 尚未重新載入）不排除任何網站，行為與舊版一致。
 
 ### 分頁去重邏輯
 
@@ -149,10 +190,12 @@ fetch(url, { method: 'HEAD', cache: 'no-cache' })
 |----------|------|------|
 | `chrome.storage.sync` | `settings` | 搜尋網站清單（含版本），跨裝置同步 |
 | `chrome.storage.sync` | `scanMode` | `'bestMatch'` 或 `'fullScan'` |
+| `chrome.storage.sync` | `excludeCurrentSite` | Boolean，排除當前站台（未設定時視為 `true`） |
 | `chrome.storage.sync` | `closeOriginalTab` | Boolean |
 | `chrome.storage.sync` | `showFloatingButton` | Boolean |
+| `chrome.storage.sync` | `enableCache` | Boolean，可用性快取開關（未設定時視為 `true`） |
 | `chrome.storage.sync` | `language` | `'auto'` 或語言代碼 |
-| `chrome.storage.session` | `uc_<url>` | URL 可用性快取（TTL 30 分鐘，不跨瀏覽器重啟） |
+| `chrome.storage.session` | `uc_<url>` | URL 可用性快取，值為 `{ available, finalUrl, timestamp }`（TTL 30 分鐘，不跨瀏覽器重啟，`unknown` 不寫入） |
 | `chrome.storage.local` | `searchHistory` | 最近 20 筆搜尋紀錄 |
 | `localStorage` | `ql_button_pos` | 浮動按鈕位置（各域名獨立，不同步） |
 
@@ -169,6 +212,13 @@ fetch(url, { method: 'HEAD', cache: 'no-cache' })
 ## 開發指引
 
 ### 新增支援網站
+
+先分清楚要新增哪一種，兩者的作法完全不同：
+
+| 需求 | 作法 |
+|------|------|
+| 新增**搜尋目標**（把番號送去查詢的網站） | 不需要改程式碼。在選項頁新增網站，用 [token](#可用的-token) 對上該站的番號格式即可 |
+| 新增**偵測來源**（會自動跳出浮動按鈕的網站） | 需要改程式碼，見下方步驟 |
 
 **步驟 1**：在 `src/content/content.js` 的 `extractCodeByDomain()` 加入提取邏輯：
 
@@ -202,6 +252,14 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.9.0
+- 新增「排除目前網站」設定（預設開啟）：在 JavDB 之類的網站上展開浮動按鈕時，不再出現連回同一個網站的結果
+- 收緊可用性判定，改為 available / unavailable / unknown 三態：原本只有 404 算不可用，導致 Cloudflare 擋下的 403、不支援 HEAD 的 405、站台 5xx 全被誤判為可用而顯示綠燈
+- 無法確認的網址改以 GET 重試一次，仍無法確認就不顯示按鈕，也不寫入快取，避免把暫時性阻擋固化成 30 分鐘的錯誤結論
+- 新增重導終點檢查：找不到資源時被導回首頁的網址改判為不可用，不再因為最終拿到 200 而顯示綠燈
+- 搜尋網址新增具名 token `{lower}`、`{upper}`、`{nodash}`、`{dmm}`，使用 DMM 品番格式的網站（如 javtrailers 的 `pred00820`）可純靠設定新增，不需要改程式碼
+- 修正預設網站清單中必然失效的 JavDB 樣板：`/v/` 路徑接受的是站內短碼而非番號，改為指向搜尋端點（不會覆寫既有使用者設定，需自行到選項頁調整）
 
 ### v3.8.1
 - 修正完整掃描模式會把 404 / 請求失敗的連結也畫成按鈕的問題：fullScan 現在只顯示確認可用（綠色）的按鈕，最佳結果模式行為不變
