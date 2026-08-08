@@ -205,13 +205,32 @@
     }
     .age-card h2 { margin: 0 0 10px; font-size: 20px; }
     .age-card p { color: var(--muted); line-height: 1.55; margin: 0 0 14px; }
+    .update-card {
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+    }
+    .update-card h2,
+    .update-card p,
+    .update-card button { flex-shrink: 0; }
     .update-list {
-      margin: 0 0 16px;
+      margin: 0 0 12px;
       padding-left: 18px;
       color: var(--text);
       line-height: 1.55;
+      overflow-y: auto;
+      min-height: 0;
     }
     .update-list li { margin: 7px 0; }
+    .update-full-log {
+      flex-shrink: 0;
+      display: block;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .update-full-log:hover { color: var(--text); text-decoration: underline; }
     .age-check {
       display: flex;
       align-items: flex-start;
@@ -293,10 +312,14 @@
         <p id="updateVersionText"></p>
         <ul class="update-list">
           <li data-i18n="update_item_missav"></li>
-          <li data-i18n="update_item_uncensored"></li>
-          <li data-i18n="update_item_consistency"></li>
-          <li data-i18n="update_item_options"></li>
+          <li data-i18n="update_item_focus_tab"></li>
+          <li data-i18n="update_item_cache"></li>
+          <li data-i18n="update_item_exclude_self"></li>
+          <li data-i18n="update_item_availability"></li>
+          <li data-i18n="update_item_tokens"></li>
+          <li data-i18n="update_item_javdb"></li>
         </ul>
+        <a class="update-full-log" href="https://github.com/BarryTsai0315/QuickLinker#更新紀錄" target="_blank" rel="noopener" data-i18n="update_full_log"></a>
         <button id="updateConfirmBtn" type="button" data-i18n="update_confirm"></button>
       </div>
     </div>
