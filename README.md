@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-![Version](https://img.shields.io/badge/version-3.10.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-立即安裝-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb) ![Version](https://img.shields.io/badge/version-3.10.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -17,6 +17,10 @@
 ---
 
 ## 快速上手
+
+### 從 Chrome 線上應用程式商店安裝（推薦）
+
+前往 [Chrome 線上應用程式商店](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb)，點擊「加到 Chrome」即可完成安裝，並可自動接收後續更新。
 
 ### 從原始碼安裝
 
