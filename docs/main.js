@@ -193,10 +193,10 @@
     var items = document.querySelectorAll('.reveal');
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (reduced || !('IntersectionObserver' in window)) {
-      items.forEach(function (el) { el.classList.add('revealed'); });
-      return;
-    }
+    // 不加 has-js 就等於完全不隱藏，內容維持可見
+    if (reduced || !('IntersectionObserver' in window)) return;
+
+    document.documentElement.classList.add('has-js');
 
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {

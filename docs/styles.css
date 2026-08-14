@@ -476,9 +476,10 @@ section {
 }
 
 /* ---------- 12. Features（bento grid） ---------- */
+/* 6 張卡：首尾各跨 2 欄 → 共 8 格，剛好填滿 4 欄 × 2 排，不留破洞 */
 .bento {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
   align-items: stretch;
 }
@@ -695,14 +696,16 @@ section {
   font-size: 0.85rem;
 }
 
-/* ---------- 17. 進場動畫（取代 AOS） ---------- */
-.reveal {
+/* ---------- 17. 進場動畫（取代 AOS） ----------
+   隱藏樣式掛在 .has-js 之下，由 main.js 在確定能接手時才加上。
+   若 JS 失敗或不支援 IntersectionObserver，內容維持完全可見，不會整段隱形。 */
+:root.has-js .reveal {
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.reveal.revealed {
+:root.has-js .reveal.revealed {
   opacity: 1;
   transform: none;
 }
@@ -746,7 +749,7 @@ section {
     transition-duration: 0.001ms !important;
   }
 
-  .reveal {
+  :root.has-js .reveal {
     opacity: 1;
     transform: none;
   }
