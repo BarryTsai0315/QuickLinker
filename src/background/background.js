@@ -247,10 +247,18 @@ function getResultUrlCandidates(url, matchUrls = []) {
   return [...new Set(candidates)];
 }
 
+// missav 常在鏡像網域之間切換（missav.ai / missav123.com / missav.ws...），
+// 去重時需視為同一站台，否則同一番號會在各網域各開一個分頁
+const MISSAV_HOST_PATTERN = /^missav\d*\.[a-z0-9.-]+$/;
+
+function stripWwwPrefix(hostname) {
+  return String(hostname || '').toLowerCase().replace(/^www\./, '');
+}
+
 function getGenericResultKey(parsedOrUrl) {
   try {
     const parsed = typeof parsedOrUrl === 'string' ? new URL(parsedOrUrl) : parsedOrUrl;
-    const hostname = parsed.hostname.toLowerCase();
+    const hostname = stripWwwPrefix(parsed.hostname);
     let pathname = parsed.pathname.toLowerCase().replace(/\/+$/, '') || '/';
     pathname = pathname.replace(/^\/[a-z]{2}(-[a-z]{2})?\//, '/');
     return `${hostname}:${pathname}:${parsed.search}`;
@@ -261,9 +269,9 @@ function getGenericResultKey(parsedOrUrl) {
 
 function getEquivalentResultKey(url) {
   const parsed = new URL(url);
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = stripWwwPrefix(parsed.hostname);
 
-  if (hostname !== 'missav.ai') return getGenericResultKey(parsed);
+  if (!MISSAV_HOST_PATTERN.test(hostname)) return getGenericResultKey(parsed);
 
   const path = parsed.pathname.toLowerCase();
   const segments = path.split('/').filter(Boolean);
@@ -273,7 +281,9 @@ function getEquivalentResultKey(url) {
     const m = seg.match(CODE_RE);
     if (m) {
       const variant = m[2] ? 'uncensored' : 'normal';
-      return `${hostname}:${m[1]}:${variant}:${parsed.search}`;
+      // 固定以 missav 為 bucket 並捨棄 query：影片頁身分只由 path 的番號決定，
+      // 納入網域或 ?lang= 之類參數只會讓同一部片算出不同 key
+      return `missav:${m[1]}:${variant}`;
     }
   }
   return '';
@@ -340,7 +350,7 @@ function getDedupeScanRows(tabs, targets, targetKeys) {
       row.exactMatch ||
       row.keyMatch ||
       row.tabKey ||
-      /missav\.ai|jable\.tv|javdb\.com/i.test(row.tabUrl || '')
+      /missav|jable\.tv|javdb\.com/i.test(row.tabUrl || '')
     ));
 }
 
