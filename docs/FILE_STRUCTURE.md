@@ -4,111 +4,114 @@
 
 ```
 QuickLinker/
-├── 📄 manifest.json          # Chrome 擴充功能配置檔（必須在根目錄）
+├── 📄 manifest.json              # Chrome 擴充功能配置檔（必須在根目錄）
+├── 📄 README.md                  # 專案說明（給開發者看）
+├── 📄 LICENSE                    # MIT 授權條款
 │
-├── 🎨 前端介面檔案
-│   ├── popup.html            # 設定面板的 HTML
-│   ├── popup.js              # 設定面板的邏輯
-│   ├── rules-config.html     # 規則配置頁面的 HTML
-│   ├── rules-config.js       # 規則配置頁面的邏輯
-│   ├── index.html            # 首頁（如果有）
-│   ├── content.css           # 網頁內容樣式（浮動按鈕等）
-│   └── content.js            # 網頁內容腳本（頁面偵測邏輯）
+├── 📦 src/                       # 擴充功能原始碼
+│   ├── background/
+│   │   └── background.js         # Service Worker（右鍵選單、連結檢查、分頁去重）
+│   ├── content/
+│   │   ├── content.js            # 內容腳本（頁面偵測、浮動按鈕）
+│   │   └── content.css           # 浮動按鈕樣式
+│   ├── popup/
+│   │   ├── popup.html            # 工具列彈出面板
+│   │   └── popup.js              # 彈出面板邏輯（含 I18N 字典與主題切換）
+│   └── options/
+│       ├── options.html          # 選項頁
+│       └── options.js            # 選項頁邏輯（含 I18N 字典與主題切換）
 │
-├── ⚙️ 背景服務
-│   └── background.js         # 背景服務 Worker（右鍵選單、核心邏輯）
+├── 🖼️ icons/                     # 擴充功能圖示（manifest.json 引用）
+│   ├── icon16.png
+│   ├── icon64.png
+│   ├── icon128.png
+│   ├── icon256.png
+│   └── icon512.png
 │
-├── 🖼️ 圖示資源
-│   └── icons/
-│       ├── icon16.png        # 16x16 圖示
-│       ├── icon64.png        # 64x64 圖示
-│       ├── icon128.png       # 128x128 圖示
-│       ├── icon256.png       # 256x256 圖示
-│       └── icon512.png       # 512x512 圖示
-│
-└── 📚 說明文件
-    ├── README.md             # 專案說明（給開發者看）
-    ├── USER_GUIDE.md         # 使用手冊（給一般用戶看）
-    ├── CLAUDE.md             # 開發筆記
-    └── LICENSE               # 授權條款
+└── 🌐 docs/                      # 官方網站 + 文件（GitHub Pages 發布來源）
+    ├── index.html                # 官網頁面（semantic markup + data-i18n 標記）
+    ├── styles.css                # 官網樣式（design token + 雙主題）
+    ├── main.js                   # 官網腳本（主題、i18n、進場動畫、捲動效果）
+    ├── i18n/                     # 官網翻譯字典
+    │   ├── zh-TW.json            # 繁體中文（原文基準）
+    │   ├── en.json               # 英文
+    │   ├── ja.json               # 日文
+    │   └── ko.json               # 韓文
+    ├── icons/                    # 官網用圖示（必須放在 docs/ 內才會被發布）
+    │   ├── icon64.png
+    │   ├── icon128.png
+    │   └── icon256.png
+    ├── demo.mp4                  # 官網 hero 區示範影片
+    ├── FILE_STRUCTURE.md         # 本文件
+    ├── USER_GUIDE.md             # 使用手冊（給一般用戶看）
+    └── STORE_DESC.md             # Chrome 商店描述文案
 ```
+
+---
+
+## 🌐 官方網站
+
+網址：<https://barrytsai0315.github.io/QuickLinker/>
+
+### 部署方式
+
+GitHub Pages 直接以 **`master` 分支的 `/docs` 目錄**作為發布來源（legacy build，無 GitHub Actions workflow）。
+**把 `docs/` 的變更 merge 進 `master` 並 push，即自動發布**，不需要任何建置步驟。
+
+⚠️ **只有 `docs/` 內的檔案會被發布。** 根目錄的 `icons/` 不在發布範圍內，
+所以官網用到的圖示必須另外複製一份到 `docs/icons/`——這正是先前 logo 與 favicon
+在線上回 404 的原因。
+
+### 本機預覽
+
+官網會以 `fetch` 載入 `i18n/*.json`，用 `file://` 直接開啟會被 CORS 擋住
+（此時頁面會退回顯示 HTML 內建的繁體中文）。預覽請起一個本機 server：
+
+```bash
+cd docs && python3 -m http.server 8000
+# 然後開啟 http://localhost:8000/
+# 指定語言：http://localhost:8000/?lang=ja
+```
+
+### 維護須知
+
+- **零建置**：官網刻意不使用 package.json、bundler 或任何 CDN 依賴，所有 CSS/JS 皆為本機靜態檔。
+- **改文案時要同步四支 JSON**：`docs/i18n/` 下四個語言檔的 key 必須完全一致，
+  且 `zh-TW.json` 的內容需與 `index.html` 內文逐字相同（HTML 內文是 JSON 載入失敗時的 fallback）。
+- **主題 token 對齊擴充功能**：`docs/styles.css` 的 `--bg / --surface / --text / --muted /
+  --border / --accent` 命名刻意與 `src/options/options.html` 一致，兩邊視為同一套設計語言。
 
 ---
 
 ## 📝 檔案說明
 
 ### 核心配置
-- **manifest.json**: Chrome 擴充功能的設定檔，定義擴充功能的名稱、版本、權限、圖示等資訊
+- **manifest.json**：Chrome 擴充功能設定檔，定義名稱、版本、權限、圖示與各腳本路徑
 
-### 使用者介面
-- **popup.html / popup.js**: 點擊工具列圖示時彈出的設定面板
-- **rules-config.html / rules-config.js**: 進階規則配置頁面
-- **content.css / content.js**: 注入到網頁中的樣式和腳本（浮動按鈕功能）
+### 擴充功能
+- **src/popup/**：點擊工具列圖示時彈出的面板
+- **src/options/**：擴充功能選項頁（搜尋網站、掃描模式、主題、語言等設定）
+- **src/content/**：注入到網頁中的樣式與腳本（頁面偵測、浮動按鈕）
+- **src/background/**：Service Worker，處理右鍵選單、連結可用性檢查等核心邏輯
 
-### 背景邏輯
-- **background.js**: 背景服務 Worker，處理右鍵選單、連結檢查等核心功能
+### 資源
+- **icons/**：擴充功能圖示（由 manifest.json 引用）
+- **docs/icons/**：官網圖示（由 `docs/index.html` 引用，需與上者分開維護）
 
-### 資源檔案
-- **icons/**: 存放不同尺寸的擴充功能圖示
-
-### 文件檔案
-- **README.md**: 技術文件，給開發者看的專案說明
-- **USER_GUIDE.md**: 使用手冊，給一般用戶看的簡易教學
-- **LICENSE**: 開源授權條款
-
----
-
-## 🎯 建議的檔案組織方式
-
-### 目前結構
-✅ **優點**：
-- 結構簡單，適合小型專案
-- manifest.json 在根目錄（Chrome 要求）
-- 所有檔案易於查找
-
-⚠️ **可改進**：
-- HTML/JS/CSS 檔案混在一起
-- 缺少明確的資料夾分類
-
-### 建議的改進結構（可選）
-
-```
-QuickLinker/
-├── manifest.json
-├── background.js              # 背景服務必須在根目錄或單獨資料夾
-│
-├── popup/                     # 設定面板相關
-│   ├── popup.html
-│   └── popup.js
-│
-├── rules/                     # 規則配置相關
-│   ├── rules-config.html
-│   └── rules-config.js
-│
-├── content/                   # 內容腳本相關
-│   ├── content.css
-│   └── content.js
-│
-├── icons/                     # 圖示資源
-│   └── ...
-│
-└── docs/                      # 文件資料夾
-    ├── README.md
-    ├── USER_GUIDE.md
-    ├── CLAUDE.md
-    └── LICENSE
-```
-
-⚠️ **注意**：如果要改用這個結構，需要同步修改 `manifest.json` 中的檔案路徑！
+### 文件
+- **README.md**：技術文件，給開發者看的專案說明
+- **docs/USER_GUIDE.md**：使用手冊，給一般用戶看的簡易教學
+- **docs/STORE_DESC.md**：Chrome 線上應用程式商店的上架描述文案
+- **LICENSE**：MIT 開源授權條款
 
 ---
 
 ## 🔧 如何維護檔案結構
 
 ### 新增功能時
-1. **新的頁面** → 考慮創建對應的資料夾
-2. **新的樣式** → 放在對應的 CSS 檔案或創建新的
-3. **新的圖示** → 統一放在 `icons/` 資料夾
+1. **新的頁面** → 在 `src/` 下建立對應資料夾，並更新 `manifest.json` 路徑
+2. **新的圖示** → 統一放在 `icons/`；官網若要用，另外複製到 `docs/icons/`
+3. **官網新增文案** → 同步新增 `data-i18n` key 到四支 JSON
 
 ### 刪除功能時
 1. 刪除對應的 HTML/JS/CSS 檔案
@@ -117,9 +120,5 @@ QuickLinker/
 
 ### 重新命名時
 1. 更新 `manifest.json` 中的路徑
-2. 檢查其他 JS 檔案中的 `import` 或連結
-3. 測試擴充功能是否正常運作
-
----
-
-**檔案結構整理完成！** ✨
+2. 檢查其他 JS 檔案中的引用或連結
+3. 重新載入擴充功能並實際測試

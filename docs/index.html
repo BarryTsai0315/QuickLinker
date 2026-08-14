@@ -1,826 +1,279 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="QuickLinker - 智慧連結聚合工具，快速跨站搜尋。自動偵測內容、檢查連結可用性，一鍵搜尋多個網站。">
-    <meta name="keywords" content="Chrome Extension, Link Aggregator, Quick Search, Multi-Site Search, QuickLinker">
-    <title>QuickLinker - Smart Link Aggregator & Quick Search Tool</title>
-    <link rel="icon" type="image/png" href="icons/icon64.png">
-
-    <!-- AOS Animation Library -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --accent: #f093fb;
-            --dark: #1a202c;
-            --light: #f7fafc;
-            --gray: #718096;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--dark);
-            overflow-x: hidden;
-        }
-
-        /* Animated Background */
-        #particles-js {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        /* Navigation */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        nav.scrolled {
-            padding: 0.5rem 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        nav .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        nav .logo {
-            display: flex;
-            align-items: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        nav .logo img {
-            width: 40px;
-            height: 40px;
-            margin-right: 0.5rem;
-        }
-
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        nav a:hover {
-            color: var(--primary);
-        }
-
-        .cta-button {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white !important;
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        /* Hero Section */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 8rem 2rem 4rem;
-            position: relative;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            color: white;
-        }
-
-        .hero h1 {
-            font-size: 4rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            line-height: 1.2;
-            animation: fadeInUp 1s ease-out;
-        }
-
-        .hero p {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
-            animation: fadeInUp 1s ease-out 0.2s backwards;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            animation: fadeInUp 1s ease-out 0.4s backwards;
-        }
-
-        .btn {
-            padding: 1rem 2.5rem;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: white;
-            color: var(--primary);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 2px solid white;
-            backdrop-filter: blur(10px);
-        }
-
-        .btn-secondary:hover {
-            background: white;
-            color: var(--primary);
-            transform: translateY(-3px);
-        }
-
-        .hero-demo {
-            margin-top: 4rem;
-            animation: fadeInUp 1s ease-out 0.6s backwards;
-        }
-
-        .browser-mockup {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .browser-header {
-            background: #e2e8f0;
-            padding: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .browser-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .dot-red { background: #ff5f56; }
-        .dot-yellow { background: #ffbd2e; }
-        .dot-green { background: #27c93f; }
-
-        .browser-content img,
-        .browser-content video {
-            width: 100%;
-            display: block;
-        }
-
-        /* Section Styles */
-        section {
-            padding: 5rem 2rem;
-            position: relative;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .section-subtitle {
-            text-align: center;
-            font-size: 1.25rem;
-            color: var(--gray);
-            margin-bottom: 4rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Features Grid */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.2);
-        }
-
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark);
-        }
-
-        .feature-card p {
-            color: var(--gray);
-            line-height: 1.8;
-        }
-
-        /* How It Works */
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 3rem;
-            margin-top: 3rem;
-        }
-
-        .step {
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: 0 auto 1rem;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .step h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .step p {
-            color: var(--gray);
-        }
-
-        /* Use Cases */
-        .use-cases {
-            background: var(--light);
-        }
-
-        .use-case-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-        }
-
-        .use-case {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s;
-        }
-
-        .use-case:hover {
-            transform: translateX(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        .use-case-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .use-case h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-        }
-
-        .use-case p {
-            color: var(--gray);
-        }
-
-        /* Download Section */
-        .download {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            text-align: center;
-        }
-
-        .download .section-title,
-        .download .section-subtitle {
-            color: white;
-            -webkit-text-fill-color: white;
-        }
-
-        .install-steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin: 3rem 0;
-        }
-
-        .install-step {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
-            border-radius: 15px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .install-step-number {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--dark);
-            color: white;
-            padding: 3rem 2rem 1rem;
-            text-align: center;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: white;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .footer-links a:hover {
-            color: var(--accent);
-        }
-
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .social-links a {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-
-        .social-links a:hover {
-            background: var(--primary);
-            transform: translateY(-3px);
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero p {
-                font-size: 1.2rem;
-            }
-
-            .section-title {
-                font-size: 2rem;
-            }
-
-            nav ul {
-                display: none;
-            }
-
-            .features-grid,
-            .steps,
-            .use-case-grid,
-            .install-steps {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Scroll Progress Bar */
-        .progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            z-index: 9999;
-            transition: width 0.1s;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!--
+    內文一律寫繁中原文並標 data-i18n。
+    如此一來即使 i18n JSON 載入失敗（例如被人用 file:// 直接開啟，fetch 會被 CORS 擋），
+    頁面仍是完整可讀的繁中版，而不是空白或裸露的 key 名。
+  -->
+  <title data-i18n="meta_title">QuickLinker — 智慧連結聚合工具</title>
+  <meta name="description" data-i18n="meta_desc" data-i18n-attr="content"
+        content="QuickLinker 是一款 Chrome 擴充功能，自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋並即時顯示連結可用性。">
+  <meta name="keywords" content="Chrome Extension, Link Aggregator, Quick Search, Multi-Site Search, QuickLinker">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" data-i18n="meta_title" data-i18n-attr="content" content="QuickLinker — 智慧連結聚合工具">
+  <meta property="og:description" data-i18n="meta_desc" data-i18n-attr="content"
+        content="QuickLinker 是一款 Chrome 擴充功能，自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋並即時顯示連結可用性。">
+  <meta property="og:image" content="icons/icon256.png">
+  <meta name="theme-color" content="#fbfcfe">
+
+  <link rel="icon" type="image/png" href="icons/icon64.png">
+  <link rel="apple-touch-icon" href="icons/icon256.png">
+
+  <!--
+    唯一允許的 inline script：在 styles.css 之前套用主題，避免首屏閃白。
+    值域封閉為 'light' | 'dark'，未設定即跟隨系統（不存 'auto'）。
+  -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('ql-theme');
+      if (t === 'dark' || t === 'light') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Progress Bar -->
-    <div class="progress-bar" id="progressBar"></div>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
 
-    <!-- Particles Background -->
-    <div id="particles-js"></div>
+  <!-- ============ Navbar ============ -->
+  <header class="navbar" id="navbar">
+    <div class="container">
+      <a class="logo" href="#top">
+        <img src="icons/icon64.png" alt="QuickLinker" width="30" height="30">
+        <span>QuickLinker</span>
+      </a>
 
-    <!-- Navigation -->
-    <nav id="navbar">
-        <div class="container">
-            <div class="logo">
-                <img src="icons/icon64.png" alt="QuickLinker">
-                QuickLinker
-            </div>
-            <ul>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#use-cases">Use Cases</a></li>
-                <li><a href="#download" class="cta-button">Download</a></li>
-            </ul>
-        </div>
-    </nav>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" data-i18n="nav_features">核心特色</a></li>
+          <li><a href="#how-it-works" data-i18n="nav_how">使用方式</a></li>
+          <li><a href="#use-cases" data-i18n="nav_cases">適用場景</a></li>
+          <li><a href="#download" data-i18n="nav_download">立即安裝</a></li>
+        </ul>
+      </nav>
 
-    <!-- Hero Section -->
+      <div class="nav-actions">
+        <select class="lang-select" id="langSelect"
+                data-i18n="lang_label" data-i18n-attr="aria-label" aria-label="選擇語言">
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+        </select>
+
+        <button class="icon-btn" id="themeToggle" type="button"
+                data-i18n="theme_toggle" data-i18n-attr="aria-label" aria-label="切換深淺主題">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============ Hero ============ -->
     <section class="hero">
-        <div class="hero-content">
-            <h1 data-aos="fade-up">QuickLinker</h1>
-            <p data-aos="fade-up" data-aos-delay="200">
-                智慧連結聚合工具，一鍵跨站搜尋<br>
-                Smart Link Aggregator & Quick Search Tool
-            </p>
-            <div class="hero-buttons">
-                <a href="https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb" class="btn btn-primary" target="_blank" rel="noopener">加到 Chrome — 免費安裝</a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker" class="btn btn-secondary" target="_blank">
-                    View on GitHub
-                </a>
-            </div>
-            <div class="hero-demo" data-aos="zoom-in" data-aos-delay="600">
-                <div class="browser-mockup">
-                    <div class="browser-header">
-                        <span class="browser-dot dot-red"></span>
-                        <span class="browser-dot dot-yellow"></span>
-                        <span class="browser-dot dot-green"></span>
-                    </div>
-                    <div class="browser-content">
-                        <video src="demo.mp4" autoplay muted loop playsinline preload="metadata" aria-label="QuickLinker 功能演示"></video>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <span class="eyebrow" data-i18n="hero_badge">免費 · 開源 · 隱私優先</span>
+        <h1>QuickLinker</h1>
+        <p class="hero-tagline" data-i18n="hero_tagline">
+          自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋，並即時告訴你哪些連結真的存在。
+        </p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" id="heroInstall" href="#" target="_blank" rel="noopener"
+             data-i18n="hero_cta_install">加到 Chrome — 免費安裝</a>
+          <a class="btn btn-secondary" id="heroRepo" href="#" target="_blank" rel="noopener"
+             data-i18n="hero_cta_github">在 GitHub 上查看</a>
         </div>
+        <p class="hero-note" data-i18n="hero_note">不需註冊帳號，所有資料只存在你的瀏覽器裡。</p>
+
+        <div class="demo-frame reveal">
+          <div class="demo-bar" aria-hidden="true">
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+          </div>
+          <video src="demo.mp4" autoplay muted loop playsinline preload="metadata"
+                 data-i18n="demo_aria" data-i18n-attr="aria-label"
+                 aria-label="QuickLinker 功能演示影片"></video>
+        </div>
+      </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- ============ Features ============ -->
     <section id="features">
-        <div class="container">
-            <h2 class="section-title" data-aos="fade-up">核心特色</h2>
-            <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
-                強大功能讓您的搜尋體驗更上一層樓
-            </p>
-            <div class="features-grid">
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="feature-icon">🎯</div>
-                    <h3>智慧內容偵測</h3>
-                    <p>自動提取網頁中的關鍵資訊（編號、代碼、ID 等），無需手動輸入</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="feature-icon">🔍</div>
-                    <h3>即時多站搜尋</h3>
-                    <p>一鍵在多個網站同時搜尋，即時顯示連結可用性狀態</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="feature-icon">🖱️</div>
-                    <h3>右鍵選單整合</h3>
-                    <p>選取任何文字即可快速搜尋，工作流程更順暢</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="feature-icon">⚙️</div>
-                    <h3>高度可客製化</h3>
-                    <p>自訂搜尋網站、掃描模式等設定，完全符合您的需求</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="feature-icon">🎨</div>
-                    <h3>現代化介面</h3>
-                    <p>漂亮的漸層設計和流暢動畫，使用體驗極致舒適</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="feature-icon">🔒</div>
-                    <h3>隱私優先</h3>
-                    <p>所有數據本地儲存，不上傳任何資訊，開源代碼可審查</p>
-                </div>
-            </div>
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 class="section-title" data-i18n="feat_heading">核心特色</h2>
+          <p class="section-subtitle" data-i18n="feat_sub">把「複製、切換分頁、貼上、搜尋」這串動作壓縮成一次點擊。</p>
         </div>
+
+        <div class="bento">
+          <article class="card card--wide reveal">
+            <span class="card-icon" aria-hidden="true">🎯</span>
+            <h3 data-i18n="feat_detect_title">智慧內容偵測</h3>
+            <p data-i18n="feat_detect_desc">自動從網頁中提取編號、代碼、ID 等關鍵資訊，不用手動複製貼上。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🔍</span>
+            <h3 data-i18n="feat_multi_title">即時多站搜尋</h3>
+            <p data-i18n="feat_multi_desc">一次在多個網站同時查詢，並即時標示每個連結是否真的存在。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🖱️</span>
+            <h3 data-i18n="feat_context_title">右鍵選單整合</h3>
+            <p data-i18n="feat_context_desc">選取畫面上任何一段文字，直接從右鍵選單發動搜尋。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">⚙️</span>
+            <h3 data-i18n="feat_custom_title">高度可客製化</h3>
+            <p data-i18n="feat_custom_desc">自訂搜尋網站、網址樣板與掃描模式，完全依你的工作流程調整。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🔒</span>
+            <h3 data-i18n="feat_privacy_title">隱私優先</h3>
+            <p data-i18n="feat_privacy_desc">所有設定只存在本機，不上傳任何資料，原始碼公開可審查。</p>
+          </article>
+
+          <article class="card card--wide reveal">
+            <span class="card-icon" aria-hidden="true">⚡</span>
+            <h3 data-i18n="feat_speed_title">輕量不卡頓</h3>
+            <p data-i18n="feat_speed_desc">以 Manifest V3 打造，背景常駐資源極低，不拖慢瀏覽速度。</p>
+          </article>
+        </div>
+      </div>
     </section>
 
-    <!-- How It Works -->
-    <section id="how-it-works" style="background: var(--light);">
-        <div class="container">
-            <h2 class="section-title" data-aos="fade-up">使用方式</h2>
-            <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
-                簡單三步驟，開始高效搜尋
-            </p>
-            <div class="steps">
-                <div class="step" data-aos="fade-up" data-aos-delay="100">
-                    <div class="step-number">1</div>
-                    <h3>自動偵測</h3>
-                    <p>訪問網站時自動提取關鍵資訊，浮動按鈕出現</p>
-                </div>
-                <div class="step" data-aos="fade-up" data-aos-delay="200">
-                    <div class="step-number">2</div>
-                    <h3>展開查看</h3>
-                    <p>點擊 + 按鈕展開所有可搜尋網站，即時檢查可用性</p>
-                </div>
-                <div class="step" data-aos="fade-up" data-aos-delay="300">
-                    <div class="step-number">3</div>
-                    <h3>一鍵跳轉</h3>
-                    <p>點擊任一網站按鈕即可跳轉搜尋結果</p>
-                </div>
-            </div>
+    <!-- ============ How it works ============ -->
+    <section id="how-it-works">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 class="section-title" data-i18n="how_heading">使用方式</h2>
+          <p class="section-subtitle" data-i18n="how_sub">安裝完就能用，不需要任何設定。</p>
         </div>
+
+        <div class="steps">
+          <div class="step reveal">
+            <span class="step-num">1</span>
+            <h3 data-i18n="step_1_title">自動偵測</h3>
+            <p data-i18n="step_1_desc">開啟支援的網站時，QuickLinker 會自動抓出關鍵資訊並顯示浮動按鈕。</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">2</span>
+            <h3 data-i18n="step_2_title">展開查看</h3>
+            <p data-i18n="step_2_desc">點擊按鈕展開所有可搜尋的網站，並即時檢查每個連結的可用性。</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">3</span>
+            <h3 data-i18n="step_3_title">一鍵跳轉</h3>
+            <p data-i18n="step_3_desc">點任一網站即可直接前往搜尋結果，重複的分頁會自動去重。</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- Use Cases -->
-    <section id="use-cases" class="use-cases">
+    <!-- ============ Use cases ============ -->
+    <div class="use-cases-wrap">
+      <section id="use-cases">
         <div class="container">
-            <h2 class="section-title" data-aos="fade-up">適用場景</h2>
-            <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
-                為各種需求打造的萬用工具
-            </p>
-            <div class="use-case-grid">
-                <div class="use-case" data-aos="fade-right" data-aos-delay="100">
-                    <div class="use-case-icon">📚</div>
-                    <h3>開發者</h3>
-                    <p>在 GitHub、Stack Overflow、文檔網站間快速查找 Issue、錯誤訊息</p>
-                </div>
-                <div class="use-case" data-aos="fade-right" data-aos-delay="200">
-                    <div class="use-case-icon">🛒</div>
-                    <h3>電商比價</h3>
-                    <p>在 Amazon、eBay、其他購物網站比較商品，找到最佳價格</p>
-                </div>
-                <div class="use-case" data-aos="fade-right" data-aos-delay="300">
-                    <div class="use-case-icon">📖</div>
-                    <h3>研究人員</h3>
-                    <p>在多個學術資料庫、論文網站搜尋相關文獻</p>
-                </div>
-                <div class="use-case" data-aos="fade-right" data-aos-delay="400">
-                    <div class="use-case-icon">🎬</div>
-                    <h3>媒體愛好者</h3>
-                    <p>在各個內容平台搜尋影片、音樂、書籍</p>
-                </div>
-            </div>
+          <div class="section-head reveal">
+            <h2 class="section-title" data-i18n="case_heading">適用場景</h2>
+            <p class="section-subtitle" data-i18n="case_sub">只要你的工作需要在多個網站間反覆查同一個關鍵字，它就派得上用場。</p>
+          </div>
+
+          <div class="cases">
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">📚</span>
+              <h3 data-i18n="case_dev_title">開發者</h3>
+              <p data-i18n="case_dev_desc">在 GitHub、Stack Overflow 與各家文件之間，快速追同一則錯誤訊息或 Issue。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">🛒</span>
+              <h3 data-i18n="case_shop_title">電商比價</h3>
+              <p data-i18n="case_shop_desc">同一件商品在多個購物網站同時查，一眼看出哪裡有貨、哪裡最便宜。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">📖</span>
+              <h3 data-i18n="case_research_title">研究人員</h3>
+              <p data-i18n="case_research_desc">用同一組關鍵字橫掃多個學術資料庫與論文網站，不必逐站重打。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">🎬</span>
+              <h3 data-i18n="case_media_title">內容愛好者</h3>
+              <p data-i18n="case_media_desc">在各個平台之間搜尋影片、音樂或書籍，先確認有沒有再點進去。</p>
+            </article>
+          </div>
         </div>
+      </section>
+    </div>
+
+    <!-- ============ CTA ============ -->
+    <section id="download" class="cta">
+      <div class="container">
+        <div class="cta-box reveal">
+          <h2 class="section-title" data-i18n="cta_heading">立即開始使用</h2>
+          <p class="section-subtitle" data-i18n="cta_sub">三十秒完成安裝，之後每次搜尋都省下三十秒。</p>
+
+          <ul class="checklist">
+            <li data-i18n="cta_check_1">前往 Chrome 線上應用程式商店</li>
+            <li data-i18n="cta_check_2">點擊「加到 Chrome」</li>
+            <li data-i18n="cta_check_3">開始使用，不需任何設定</li>
+          </ul>
+
+          <div class="hero-buttons">
+            <a class="btn btn-primary" id="ctaInstall" href="#" target="_blank" rel="noopener"
+               data-i18n="cta_install">加到 Chrome</a>
+            <a class="btn btn-secondary" id="ctaRepo" href="#" target="_blank" rel="noopener"
+               data-i18n="cta_source">查看原始碼</a>
+          </div>
+        </div>
+      </div>
     </section>
+  </main>
 
-    <!-- Download Section -->
-    <section id="download" class="download">
-        <div class="container">
-            <h2 class="section-title" data-aos="fade-up">立即開始使用</h2>
-            <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
-                免費、開源、隨時可用
-            </p>
-            <div class="install-steps">
-                <div class="install-step" data-aos="zoom-in" data-aos-delay="100">
-                    <div class="install-step-number">1</div>
-                    <h3>前往商店</h3>
-                    <p>開啟 Chrome 線上應用程式商店頁面</p>
-                </div>
-                <div class="install-step" data-aos="zoom-in" data-aos-delay="200">
-                    <div class="install-step-number">2</div>
-                    <h3>加到 Chrome</h3>
-                    <p>點擊「加到 Chrome」完成安裝</p>
-                </div>
-                <div class="install-step" data-aos="zoom-in" data-aos-delay="300">
-                    <div class="install-step-number">3</div>
-                    <h3>開始使用</h3>
-                    <p>立即享受高效搜尋體驗</p>
-                </div>
-            </div>
-            <div class="hero-buttons" data-aos="fade-up" data-aos-delay="400">
-                <a href="https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb" class="btn btn-primary" target="_blank" rel="noopener">
-                    🧩 加到 Chrome
-                </a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker" class="btn btn-secondary" target="_blank" rel="noopener">
-                    📖 查看原始碼
-                </a>
-            </div>
-        </div>
-    </section>
+  <!-- ============ Footer ============ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="footer-links">
+        <li><a id="footerStore" href="#" target="_blank" rel="noopener" data-i18n="footer_store">Chrome 商店</a></li>
+        <li><a id="footerRepo" href="#" target="_blank" rel="noopener" data-i18n="footer_github">GitHub</a></li>
+        <li><a href="https://github.com/BarryTsai0315/QuickLinker/issues" target="_blank" rel="noopener" data-i18n="footer_issues">回報問題</a></li>
+        <li><a href="https://github.com/BarryTsai0315/QuickLinker/blob/master/README.md" target="_blank" rel="noopener" data-i18n="footer_docs">使用文件</a></li>
+        <li><a href="https://github.com/BarryTsai0315/QuickLinker/blob/master/LICENSE" target="_blank" rel="noopener" data-i18n="footer_license">授權條款</a></li>
+      </ul>
 
-    <!-- Footer -->
-    <footer>
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb" target="_blank" rel="noopener">Chrome 商店</a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker" target="_blank">GitHub</a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker/issues" target="_blank">回報問題</a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker/blob/master/README.md" target="_blank">文檔</a>
-                <a href="https://github.com/BarryTsai0315/QuickLinker/blob/master/LICENSE" target="_blank">授權條款</a>
-            </div>
-            <div class="social-links">
-                <a href="https://github.com/BarryTsai0315/QuickLinker" target="_blank" title="GitHub">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                </a>
-            </div>
-            <p style="margin-top: 2rem; opacity: 0.7;">
-                &copy; 2025 QuickLinker. Made with ❤️ by the QuickLinker Team<br>
-                Licensed under MIT License
-            </p>
-        </div>
-    </footer>
+      <a class="footer-social" id="footerSocial" href="#" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+      <p class="footer-copy">
+        &copy; <span id="year">2025</span>
+        <span data-i18n="footer_copy">QuickLinker · 以 MIT 授權釋出</span>
+      </p>
+    </div>
+  </footer>
 
-    <script>
-        // Initialize AOS (Animate On Scroll)
-        AOS.init({
-            duration: 1000,
-            once: true,
-            offset: 100
-        });
-
-        // Particles.js Configuration
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: '#ffffff' },
-                shape: { type: 'circle' },
-                opacity: { value: 0.3, random: true },
-                size: { value: 3, random: true },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: '#ffffff',
-                    opacity: 0.2,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 2,
-                    direction: 'none',
-                    random: false,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: { enable: true, mode: 'grab' },
-                    onclick: { enable: true, mode: 'push' },
-                    resize: true
-                },
-                modes: {
-                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
-                    push: { particles_nb: 4 }
-                }
-            },
-            retina_detect: true
-        });
-
-        // Smooth Scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-
-        // Navbar Scroll Effect
-        const navbar = document.getElementById('navbar');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 100) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        });
-
-        // Progress Bar
-        const progressBar = document.getElementById('progressBar');
-        window.addEventListener('scroll', () => {
-            const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrolled = (window.scrollY / windowHeight) * 100;
-            progressBar.style.width = scrolled + '%';
-        });
-
-        // Dynamic Year
-        document.querySelector('footer p').innerHTML =
-            `&copy; ${new Date().getFullYear()} QuickLinker. Made with ❤️ by the QuickLinker Team<br>Licensed under MIT License`;
-    </script>
+  <script src="main.js"></script>
 </body>
 </html>
