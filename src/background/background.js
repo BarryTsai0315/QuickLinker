@@ -12,6 +12,45 @@ chrome.storage.onChanged.addListener((changes, ns) => {
 });
 function dbg(...args) { if (devMode) console.log(...args); }
 
+// 全新安裝時預設帶入的搜尋站台清單
+const DEFAULT_SITE_LIST = [
+  {
+    id: 'min627gkr4gwrbeknj',
+    name: 'Missav',
+    versions: [{ id: 'min627gkvpdnv3qge4a', baseUrl: 'https://missav.ai/{}', name: '預設' }]
+  },
+  {
+    id: 'min627gkbw8dng7adlu',
+    name: 'JABLE',
+    versions: [{ id: 'min627gkqzvkmm2k78d', baseUrl: 'https://jable.tv/videos/{}/', name: '預設' }]
+  },
+  {
+    id: 'min627gk7st1fnsf86',
+    name: 'search JAVDB',
+    versions: [{ id: 'min627gkhy3bsyvo5es', baseUrl: 'https://javdb.com/search?q={}&f=all', name: '預設' }]
+  },
+  {
+    id: 'min627gk3su8add8fus',
+    name: 'searchFC2',
+    versions: [{ id: 'min627gkvo2ayv0j49', baseUrl: 'https://fc2cmadb.com/articles/{}', name: '預設' }]
+  },
+  {
+    id: 'min627gkf12f7fpucyw',
+    name: 'FC2 missav',
+    versions: [{ id: 'min627gknxwlwcb96rk', baseUrl: 'https://missav.ai/fc2-ppv-{}', name: '預設' }]
+  },
+  {
+    id: 'mqk69sebhhaz69xgkqw',
+    name: 'JavDB',
+    versions: [{ id: 'mqk69seb4kjx8w2y2wa', baseUrl: 'https://javdb.com/v/{}', name: '預設' }]
+  },
+  {
+    id: 'msk2qdxt2etaq1a2wj2',
+    name: 'javtrailers',
+    versions: [{ id: 'msk2qdxt2etaq1a2wj2_default', baseUrl: 'https://javtrailers.com/video/{dmm}', name: 'Default' }]
+  }
+];
+
 function normalizeSearchCode(value) {
   const code = String(value || '')
     .normalize('NFKC')
@@ -552,18 +591,24 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   if (details.reason === 'update') {
     console.log(`[QuickLinker] 擴充功能已更新: ${details.previousVersion} → ${currentVersion}`);
-    chrome.storage.sync.set({
-      showUpdateNotification: true,
-      updateFromVersion: details.previousVersion
-    });
-    chrome.action.setBadgeText({ text: 'NEW' });
-    chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
+    // 只有 MINOR/MAJOR 版號變動（新功能）才顯示「本次更新」彈窗，純 PATCH 修正不打擾使用者
+    const [prevMajor, prevMinor] = details.previousVersion.split('.');
+    const [curMajor, curMinor] = currentVersion.split('.');
+    if (prevMajor !== curMajor || prevMinor !== curMinor) {
+      chrome.storage.sync.set({
+        showUpdateNotification: true,
+        updateFromVersion: details.previousVersion
+      });
+      chrome.action.setBadgeText({ text: 'NEW' });
+      chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
+    }
   } else if (details.reason === 'install') {
     dbg('[QuickLinker] 擴充功能已安裝');
-    // 首次安裝也顯示功能介紹
+    // 首次安裝也顯示功能介紹，並預先帶入常用搜尋站台
     chrome.storage.sync.set({
       showUpdateNotification: true,
-      updateFromVersion: null
+      updateFromVersion: null,
+      settings: DEFAULT_SITE_LIST
     });
     chrome.action.setBadgeText({ text: 'NEW' });
     chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
