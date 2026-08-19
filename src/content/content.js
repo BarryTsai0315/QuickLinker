@@ -309,16 +309,8 @@ async function updateFloatingButtons(code, limitedSites = null, urls = null) {
         currentHost: location.hostname
     });
 
-    // 只渲染已確認的結果；unknown 與訊息組裝錯誤不建立按鈕
-    let results = (response.results || []).filter(result => result.status === 'available' || result.status === 'unavailable');
-
-    // fullScan 模式下只渲染確認可用（available）的按鈕，避免堆出大量 404 廢按鈕
-    const { scanMode } = await chrome.storage.sync.get(['scanMode']);
-    const effectiveScanMode = urls ? 'fullScan' : scanMode;
-    if (effectiveScanMode === 'fullScan') {
-        results = results.filter(result => result.status === 'available');
-        dbg('[QuickLinker] fullScan: filtered to available only,', results.length, 'buttons');
-    }
+    // 只渲染已確認可用的結果；unavailable/unknown 與訊息組裝錯誤都不建立按鈕
+    const results = (response.results || []).filter(result => result.status === 'available');
 
     updateButtonStates(results);
 }
@@ -520,10 +512,6 @@ function updateButtonStates(results) {
                     }
                 });
                 break;
-            case 'unavailable':
-                subButton.classList.add('status-unavailable');
-                subButton.style.pointerEvents = 'none'; // Make it unclickable
-                break;
             case 'error':
                 subButton.classList.add('status-error');
                 subButton.style.pointerEvents = 'none';
@@ -575,7 +563,6 @@ style.textContent = `
   /* Status Styles */
   .status-loading { border-color: #ffc107; /* Yellow */ animation: pulse 1.5s infinite; }
   .status-available { border-color: #28a745; /* Green */ }
-  .status-unavailable { border-color: #dc3545; /* Red */ opacity: 0.5; }
   .status-error { border-color: #fd7e14; /* Orange */ opacity: 0.6; }
 
   @keyframes pulse {
