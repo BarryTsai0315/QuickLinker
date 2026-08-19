@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-立即安裝-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb) [![官方網站](https://img.shields.io/badge/官方網站-quicklinker-6c8cff)](https://barrytsai0315.github.io/QuickLinker/) ![Version](https://img.shields.io/badge/version-3.10.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-立即安裝-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb) [![官方網站](https://img.shields.io/badge/官方網站-quicklinker-6c8cff)](https://barrytsai0315.github.io/QuickLinker/) ![Version](https://img.shields.io/badge/version-3.10.3-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 🌐 官方網站：<https://barrytsai0315.github.io/QuickLinker/>（支援繁中／英／日／韓與深色模式；維護方式見 [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md#-官方網站)）
 
@@ -40,9 +40,7 @@
 當你瀏覽內建支援的網站時，擴充功能會自動偵測頁面中的番號或 ID，並在右下角顯示浮動 `+` 按鈕。
 
 1. 點擊 `+` 展開子按鈕，顯示已設定的搜尋網站
-2. 每個按鈕以顏色標示連結狀態：
-   - **綠色邊框** — 連結確認可用
-   - **紅色邊框** — 連結確認不存在（不可點擊，僅「最佳結果」模式會顯示）
+2. 每個按鈕以綠色邊框標示連結確認可用；未能確認可用的網站不會產生按鈕
 3. 點擊任一按鈕即跳轉；若該番號已有開啟的分頁，自動聚焦該分頁而非開新分頁
 
 **只顯示確認過的結果**：無法確認可用性的網站（被 Cloudflare 之類的防護擋下、站台暫時故障、不支援探測方法）不會產生按鈕。你看到的每一顆按鈕，都是實際探測過的結果，不會出現點下去才發現是死連結的情況。詳見 [URL 可用性判斷機制](#url-可用性判斷機制)。
@@ -101,7 +99,7 @@ https://javtrailers.com/video/{dmm}
 
 | 模式 | 行為 | 顯示的按鈕 | 適合情境 |
 |------|------|------------|----------|
-| **最佳結果** | 循序檢查，找到第一個可用連結後立即停止 | 可用（綠）與確認不存在（紅） | 只想快速跳轉 |
+| **最佳結果** | 循序檢查，找到第一個可用連結後立即停止 | 僅可用（綠） | 只想快速跳轉 |
 | **完整掃描** | 平行檢查所有網站 | 僅可用（綠） | 需要比較哪些網站有資源 |
 
 ### 其他設定
@@ -152,7 +150,7 @@ QuickLinker/
 
 **重導終點退化**：部分網站找不到資源時不回 404，而是 302 導回首頁，跟隨重導後拿到 200。因此在判為 `available` 之前多一道檢查——若回應發生過重導、最終網址的路徑是根路徑、而原請求路徑不是根路徑，改判為 `unavailable`。
 
-**渲染規則**：只有 `available` 與 `unavailable` 會產生按鈕，`unknown` 完全不渲染。「完整掃描」模式再進一步只保留 `available`。
+**渲染規則**：只有 `available` 會產生按鈕，`unavailable` 與 `unknown` 都不渲染，兩種模式行為一致。
 
 **快取**：`available` 與 `unavailable` 的結果存入 `chrome.storage.session`，TTL 30 分鐘。`unknown` 不寫入快取，讓下次檢查能重新探測，避免把暫時性的阻擋固化成 30 分鐘的錯誤結論。關閉「啟用搜尋快取」設定後不讀也不寫。
 
@@ -264,6 +262,14 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.10.3
+- 「最佳結果」模式移除「確認不存在」（紅色）按鈕，改為與「完整掃描」一致，只顯示確認可用（綠）的按鈕
+- 內建的「本次更新」通知，改為只在 MINOR/MAJOR 版本（有新功能）才顯示，純 PATCH 修正不再重複彈出；通知內容也同步改為對應這次的實際異動
+- 全新安裝預設帶入 7 個常用搜尋站台（MissAV、JABLE、JavDB、FC2 等），不需再自行到選項頁新增
+
+### v3.10.1
+- 收斂 MissAV 鏡像網域與 www 變體的分頁去重比對鑰匙，修正部分情境下重複開分頁的問題
 
 ### v3.10.0
 - 修正右鍵選單未套用具名 token 的問題，並統一對樣板代入值進行 URL 編碼

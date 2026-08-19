@@ -1,7 +1,7 @@
 # Chrome Web Store 商店描述
 
 > 本檔為商店「詳細說明」欄位的來源文案。修改功能後請同步更新此檔與商店頁面。
-> 最後同步版本：v3.10.0
+> 最後同步版本：v3.10.3
 
 ---
 
@@ -28,9 +28,8 @@ QuickLinker - 智慧連結聚合與快速搜尋工具
 3. 點擊展開，查看所有已設定的搜尋網站
 4. 以顏色標示連結狀態：
    🟢 綠色邊框：連結確認可用
-   🔴 紅色邊框：連結確認不存在（僅「最佳結果」模式顯示）
    🟡 黃色邊框：檢查中
-   ※ 無法確認的網址不會建立按鈕，避免顯示誤導性的結果
+   ※ 確認不可用或無法確認的網址都不會建立按鈕，避免顯示誤導性的結果
 5. 點擊任一按鈕即可跳轉；若該關鍵字已有開啟的分頁，會自動聚焦而非重複開啟
 
 🎨 進階功能
@@ -92,9 +91,8 @@ Boost your search efficiency with intelligent content detection and instant mult
 3. Click to expand and see all your configured search sites
 4. Color-coded status indicators:
    🟢 Green border: Link confirmed available
-   🔴 Red border: Link confirmed missing (shown in Best Match mode only)
    🟡 Yellow border: Checking
-   Note: URLs that cannot be confirmed produce no button at all, so you never see a misleading result
+   Note: URLs that are confirmed missing or cannot be confirmed produce no button at all, so you never see a misleading result
 5. Click any button to jump straight there. If a tab for that keyword is already open, it is focused instead of duplicated
 
 🎨 ADDITIONAL FEATURES
