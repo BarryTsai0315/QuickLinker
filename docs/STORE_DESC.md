@@ -53,7 +53,7 @@ QuickLinker - 智慧連結聚合與快速搜尋工具
 
 ⚠️ 使用前提
 
-首次開啟時需確認您已達法定年齡，且在您所在地區使用所設定的內容為合法。搜尋目標網站完全由使用者自行設定，本擴充功能不預設或推薦任何特定內容。
+首次開啟時需確認您已達法定年齡，且在您所在地區使用所設定的內容為合法。首次安裝已預先帶入幾個常見搜尋站台方便上手，所有站台皆可在選項頁自由新增、編輯或移除，您可存取的內容完全取決於您自己設定的網站。
 
 適合開發者、研究人員、購物比價者，以及任何需要頻繁跨網站搜尋的使用者。
 
@@ -116,7 +116,7 @@ Boost your search efficiency with intelligent content detection and instant mult
 
 ⚠️ BEFORE YOU START
 
-On first launch you must confirm that you are of legal age and that accessing the content you configure is lawful in your region. All search destinations are defined entirely by you — this extension does not preset or recommend any particular content.
+On first launch you must confirm that you are of legal age and that accessing the content you configure is lawful in your region. A fresh install comes with a few common search sites pre-configured to help you get started — you can freely add, edit, or remove any of them in the options page. What you can access always depends entirely on the sites you choose to configure.
 
 Perfect for developers, researchers, shoppers, and anyone who frequently searches across multiple websites.
 
