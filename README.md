@@ -2,7 +2,7 @@
 
 **智慧連結聚合 Chrome 擴充功能** — 自動偵測頁面內容、即時檢查多個網站的連結可用性，讓你一鍵跨站搜尋。
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-立即安裝-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb) [![官方網站](https://img.shields.io/badge/官方網站-quicklinker-6c8cff)](https://barrytsai0315.github.io/QuickLinker/) ![Version](https://img.shields.io/badge/version-3.10.0-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-立即安裝-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/quicklinker/nlekpdjojigdbkidndldccapckfonjfb) [![官方網站](https://img.shields.io/badge/官方網站-quicklinker-6c8cff)](https://barrytsai0315.github.io/QuickLinker/) ![Version](https://img.shields.io/badge/version-3.10.2-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 🌐 官方網站：<https://barrytsai0315.github.io/QuickLinker/>（支援繁中／英／日／韓與深色模式；維護方式見 [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md#-官方網站)）
 
@@ -262,6 +262,14 @@ const hardcodedDomains = ['javdb.com', 'javlibrary.com', 'fc2cmadb.com', 'missav
 ---
 
 ## 更新紀錄
+
+### v3.10.2
+- 「最佳結果」模式移除「確認不存在」（紅色）按鈕，改為與「完整掃描」一致，只顯示確認可用（綠）的按鈕
+- 內建的「本次更新」通知，改為只在 MINOR/MAJOR 版本（有新功能）才顯示，純 PATCH 修正不再重複彈出
+- 全新安裝預設帶入 7 個常用搜尋站台（MissAV、JABLE、JavDB、FC2 等），不需再自行到選項頁新增
+
+### v3.10.1
+- 收斂 MissAV 鏡像網域與 www 變體的分頁去重比對鑰匙，修正部分情境下重複開分頁的問題
 
 ### v3.10.0
 - 修正右鍵選單未套用具名 token 的問題，並統一對樣板代入值進行 URL 編碼
